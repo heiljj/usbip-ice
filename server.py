@@ -1,8 +1,11 @@
 from blacksheep import get, post, Application, json, Response, Request, FromFiles
+from blacksheep.server.sse import ServerSentEvent, ServerSentEventsResponse
 import uvicorn
 import logging
 import sys
 from werkzeug.utils import secure_filename
+from threading import Lock
+
 
 from DeviceManager import DeviceManager, Firmware
 
@@ -61,10 +64,22 @@ async def devices_flash(request: Request, device: str):
     
     with open(sec_name, "wb") as f:
         f.write(data["firmware"][0].data)
+    
+    lock = Lock()
+    lock.acquire()
 
-    res = manager.uploadFirmware(device, Firmware(name, sec_name))
+    res = manager.uploadFirmware(device, Firmware(name, sec_name, callback=lambda _ : lock.release()))
 
-    return Response(200 if res else 403)
+    if not res:
+        return Response(400)
+
+    async def events_provider():
+        yield ServerSentEvent("started bootloader mode")
+        lock.acquire()
+        yield ServerSentEvent("upload complete")
+    
+    return ServerSentEventsResponse(events_provider)
+
 
 
 

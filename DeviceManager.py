@@ -8,9 +8,10 @@ import shutil
 from utils import *
 
 class Firmware:
-    def __init__(self, name, file):
+    def __init__(self, name, file, callback=None):
         self.name = name
         self.file = file
+        self.callback = callback
     
 class Device:
     def __init__(self, serial, logger, dev_files={}, export_usbip=False):
@@ -76,12 +77,11 @@ class Device:
 
         self.logger.info(f"removed device {format_dev_file(udevinfo)}")
 
-    def startBootloaderMode(self, firmware, callback=None):
+    def startBootloaderMode(self, firmware):
         """Starts the process of updating firmware. When the update is complete,
         the callback will be called with self as the only argument."""
         self.logger.info(f"updating firmware of {self.serial} to {firmware.name}")
         self.next_firmware = firmware
-        self.firmware_callback = callback
 
         # cleanup will only trigger ADD events for devices that are being exported
         files = list(self.dev_files.values())
@@ -144,11 +144,11 @@ class Device:
         self.logger.info(f"updated firmware for {self.serial}")
         self.current_firmware_name = self.next_firmware.name
         os.remove(self.next_firmware.file)
-        self.next_firmware = None
 
-        if self.firmware_callback:
-            self.firmware_callback(self)
-        self.firmware_callback = None
+        if self.next_firmware.callback:
+            self.next_firmware.callback(self)
+
+        self.next_firmware = None
 
     def reserve(self):
         with self.lock:
