@@ -6,17 +6,33 @@ import sys
 from werkzeug.utils import secure_filename
 from threading import Lock
 import atexit
+import sys
+import os
 
 from DeviceManager import DeviceManager, Firmware
 
 if __name__ == "__main__":
+
+    # It does not look like uvicorn allows args to passed
+    # They will be lost when uvicorn runs main again,
+    # so we save them as env variables as a workaround
+    if len(sys.argv) == 1:
+        os.environ["SERVERCONF_EXPORT_USBIP"] = "1"
+    elif len(sys.argv) == 2:
+        if sys.argv[1] == "local":
+            os.environ["SERVERCONF_EXPORT_USBIP"] = "0"
+        else:
+            raise Exception("Unknown args")
+
     uvicorn.run("server:app", host="0.0.0.0", port=5000)
+
 else:
+    export_usbip = os.getenv("SERVERCONF_EXPORT_USBIP")
     logger = logging.getLogger(__name__)
     logger.setLevel(logging.DEBUG)
     logger.addHandler(logging.StreamHandler(sys.stdout))
 
-    manager = DeviceManager(logger, export_usbip=True)
+    manager = DeviceManager(logger, export_usbip=export_usbip)
 
     atexit.register(lambda : manager.onExit())
 
@@ -41,13 +57,25 @@ def devices_bus(device: str):
 
 @get("/devices/reserve/{device}")
 def devices_reserve_put(device: str):
-    res = manager.reserve(device)
-    return Response(200 if res else 403)
+    import requests
+    def callback(dev):
+        requests.get(f"http://localhost:5050/{dev.exported_busid}")
+
+    res = manager.reserve(device, usbip_subscription=callback)
+
+    if res:
+        return json({})
+    
+    return Response(403)
 
 @get("/devices/unreserve/{device}")
 def devices_reserve_delete(device: str):
     res = manager.unreserve(device)
-    return Response(200 if res else 403)
+
+    if res:
+        return json({})
+    
+    return Response(403)
 
 
 @get("/devices/flash/{device}")
