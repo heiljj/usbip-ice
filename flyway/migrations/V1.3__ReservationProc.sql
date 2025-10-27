@@ -35,6 +35,125 @@ BEGIN
 END
 $$;
 
--- CREATE PROCEDURE extendReservations
--- CREATE PROCEDURE endReservations
--- CREATE FUNCTION getReservationTimeouts
+CREATE FUNCTION extendReservations(client_name varchar(255), serial_ids varchar(255)[])
+RETURNS TABLE (
+    "Device" varchar(255)
+)
+LANGUAGE plpgsql
+AS
+$$
+BEGIN
+    RETURN QUERY
+    UPDATE Reservations
+    SET Until = CURRENT_TIMESTAMP + interval '1 hour'
+    WHERE Device = ANY(serial_ids)
+    AND ClientName = client_name
+    RETURNING Device;
+END
+$$;
+
+CREATE FUNCTION extendAllReservations(client_name varchar(255))
+RETURNS TABLE (
+    "Device" varchar(255)
+)
+LANGUAGE plpgsql
+AS
+$$
+BEGIN
+    RETURN QUERY
+    UPDATE Reservations
+    SET Until = CURRENT_TIMESTAMP + interval '1 hour'
+    WHERE ClientName = client_name
+    RETURNING Device;
+END
+$$;
+
+CREATE FUNCTION endReservations(client_name varchar(255), serial_ids varchar(255)[])
+RETURNS TABLE (
+    "Device" varchar(255)
+)
+LANGUAGE plpgsql
+AS 
+$$
+BEGIN
+    CREATE TEMPORARY TABLE res (
+        "Device" varchar(255)
+    ) ON COMMIT DROP;
+
+    INSERT INTO res("Device")
+    SELECT Device
+    FROM Reservations
+    WHERE ClientName = client_name
+    AND Device = ANY(serial_ids);
+
+    DELETE FROM Reservations
+    WHERE Device IN (SELECT res."Device" FROM res);
+
+    UPDATE Device
+    SET DeviceStatus = 'await_flash_default'
+    WHERE Device.SerialID IN (SELECT res."Device" FROM res);
+
+    RETURN QUERY SELECT * FROM res;
+END
+$$;
+
+CREATE FUNCTION endAllReservations(client_name varchar(255))
+RETURNS TABLE (
+    "Device" varchar(255)
+)
+LANGUAGE plpgsql
+AS 
+$$
+BEGIN
+    CREATE TEMPORARY TABLE res (
+        "Device" varchar(255)
+    ) ON COMMIT DROP;
+
+    INSERT INTO res("Device")
+    SELECT Device
+    FROM Reservations
+    WHERE ClientName = client_name;
+
+    DELETE FROM Reservations
+    WHERE Device IN (SELECT res.Device FROM res);
+
+    UPDATE Device
+    SET DeviceStatus = 'await_flash_default'
+    WHERE Device.SerialID IN (SELECT res.Device FROM res);
+
+    RETURN QUERY SELECT * FROM res;
+END
+$$;
+
+CREATE FUNCTION handleReservationTimeouts()
+RETURNS TABLE (
+    "Device" varchar(255),
+    "ClientName" varchar(255),
+    "NotificationUrl" varchar(255)
+)
+LANGUAGE plpgsql
+AS
+$$
+BEGIN
+    CREATE TEMPORARY TABLE res (
+        "Device" varchar(255)
+    ) ON COMMIT DROP;
+
+    INSERT INTO res("Device")
+    SELECT Device
+    FROM Reservations
+    WHERE Until < CURRENT_TIMESTAMP;
+
+    RETURN QUERY 
+    SELECT res."Device", Reservations.ClientName, Reservations.NotificationUrl
+    FROM res
+    INNER JOIN Reservations ON res."Device" = Reservations.Device;
+
+    DELETE FROM Reservations
+    WHERE Device IN (SELECT res."Device" FROM res);
+
+    UPDATE Device
+    SET DeviceStatus = 'await_flash_default'
+    WHERE Device.SerialID IN (SELECT res."Device" FROM res);
+END
+$$;

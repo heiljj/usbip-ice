@@ -42,7 +42,7 @@ BEGIN
 END
 $$;
 
-CREATE FUNCTION getWorkerTimeouts(t timestamp)
+CREATE FUNCTION handleWorkerTimeouts(t timestamp)
 RETURNS TABLE (
     "NotificationUrl" varchar(255),
     "SerialId" varchar(255)
