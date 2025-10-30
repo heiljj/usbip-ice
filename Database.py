@@ -24,7 +24,7 @@ class Database:
                     cur.execute("CALL addWorker(%s::varchar(255), %s::inet, %s::int, %s::int)", (clientname, exported_ip, exported_usbip_port, exported_server_port))
                     conn.commit()
 
-        except Exception as e:
+        except Exception:
             logger.critical("Failed to connect to database")
             raise Exception("Failed to connect to database")
 

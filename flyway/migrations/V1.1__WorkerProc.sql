@@ -1,3 +1,7 @@
+CREATE VIEW WorkerHeartbeats AS
+SELECT WorkerName, Host, ServerPort
+FROM Worker;
+
 CREATE PROCEDURE addWorker(wname varchar(255), Host inet, UsbipPort int, ServerPort int)
 LANGUAGE plpgsql 
 AS
@@ -42,20 +46,23 @@ BEGIN
 END
 $$;
 
-CREATE FUNCTION handleWorkerTimeouts(t timestamp)
+CREATE FUNCTION handleWorkerTimeouts(s int)
 RETURNS TABLE (
+    "Worker" varchar(255),
     "NotificationUrl" varchar(255),
     "SerialId" varchar(255)
 )
 LANGUAGE plpgsql
 AS
 $$
+DECLARE t timestamp;
 BEGIN
+    t := CURRENT_TIMESTAMP + s * interval '1 second';
     RETURN QUERY
-    SELECT NotificationUrl, SerialId
+    SELECT Worker, NotificationUrl, SerialId
     FROM Worker
     INNER JOIN Device ON Worker.WorkerName = Device.Worker
-    INNER JOIN Reservations ON Reservations.Device = Device.SerialId
+    LEFT JOIN Reservations ON Reservations.Device = Device.SerialId
     WHERE LastHeartbeat < t;
     
     DELETE FROM Worker
