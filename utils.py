@@ -6,7 +6,7 @@ import threading
 # since the application thread does not have access to the server object
 # this seems to be the least hacky way to go about it
 def getIp():
-    res = subprocess.run(["hostname", "-I"], stdout=subprocess.PIPE).stdout
+    res = subprocess.run(["hostname", "-I"], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL).stdout
     return re.search("[0-9]{3}\\.[0-9]{3}\\.[0-9]\\.[0-9]{3}", str(res)).group(0)
 
 def format_dev_file(udevinfo):
@@ -19,7 +19,7 @@ def format_dev_file(udevinfo):
 def get_exported_buses():
     # this is dumb but -local includes devices that are not bound
     # if it doesn't work there are bigger issues
-    p = subprocess.run(["usbip", "list", "-r", "localhost"], stdout=subprocess.PIPE, timeout=5)
+    p = subprocess.run(["usbip", "list", "-r", "localhost"], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, timeout=5)
 
     if p.returncode != 0:
         return False
@@ -45,25 +45,25 @@ def get_busid(udevinfo):
     return f"{busid}-{devid}"
 
 def usbip_bind(busid):
-    p = subprocess.run(["sudo", "usbip", "bind", "-b", busid])
+    p = subprocess.run(["sudo", "usbip", "bind", "-b", busid], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     return p.returncode == 0
 
 def usbip_unbind(busid):
-    p = subprocess.run(["sudo", "usbip", "unbind", "-b", busid])
+    p = subprocess.run(["sudo", "usbip", "unbind", "-b", busid], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     return p.returncode == 0
 
 def send_bootloader(path, timeout=10):
     def send():
-        subprocess.run(["sudo", "picocom", "--baud", "1200", path], timeout=timeout)
+        subprocess.run(["sudo", "picocom", "--baud", "1200", path], timeout=timeout, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     
     t = threading.Thread(None, send)
     t.start()
 
 def mount(drive, loc):
-    p = subprocess.run(["sudo", "mount", drive, loc])
+    p = subprocess.run(["sudo", "mount", drive, loc], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     return p.returncode == 0
 
 def umount(loc):
-    p = subprocess.run(["sudo", "umount", loc])
+    p = subprocess.run(["sudo", "umount", loc], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     return p.returncode == 0
 

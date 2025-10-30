@@ -12,11 +12,11 @@ BEGIN
     END IF;
 
     INSERT INTO Device(SerialID, Worker, UsbipBus, LastUsbipExport, DeviceStatus)
-    VALUES(deviceserial, Worker, NULL, NULL, 'flashing_default');
+    VALUES(deviceserial, Worker, NULL, NULL, 'await_flash_default');
 END
 $$;
 
-CREATE PROCEDURE finishFlashDevice(deviceserial varchar(255))
+CREATE PROCEDURE updateDeviceStatus(deviceserial varchar(255), dstate DeviceState)
 LANGUAGE plpgsql
 AS
 $$
@@ -26,37 +26,7 @@ BEGIN
     END IF;
 
     UPDATE Device
-    SET DeviceStatus = 'available'
-    WHERE SerialID = deviceserial;
-END
-$$;
-
-CREATE PROCEDURE failFlashDevice(deviceserial varchar(255))
-LANGUAGE plpgsql
-AS
-$$
-BEGIN
-    IF deviceserial NOT IN (SELECT SerialId FROM Device) THEN
-        RAISE EXCEPTION 'Device serial does not exist';
-    END IF;
-
-    UPDATE Device
-    SET DeviceStatus = 'broken'
-    WHERE SerialID = deviceserial;
-END
-$$;
-
-CREATE PROCEDURE setDeviceAvailable(deviceserial varchar(255))
-LANGUAGE plpgsql
-AS
-$$
-BEGIN
-    IF deviceserial NOT IN (SELECT SerialId FROM Device) THEN
-        RAISE EXCEPTION 'Device serial does not exist';
-    END IF;
-
-    UPDATE Device
-    SET DeviceStatus = 'available'
+    SET DeviceStatus = dstate
     WHERE SerialID = deviceserial;
 END
 $$;
