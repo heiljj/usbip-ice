@@ -59,6 +59,11 @@ class Device:
             return
 
         busid = get_busid(udevinfo)
+
+        # this can happen if multiple device adds get queued 
+        if busid == self.exported_busid:
+            return
+
         binded = usbip_bind(busid)
 
         if not binded:
@@ -67,12 +72,12 @@ class Device:
 
         self.logger.info(f"binded dev {format_dev_file(udevinfo)} on {busid}")
         self.exported_busid = busid
-        
-        if not self.database.updateDeviceBus(self.serial, busid):
-            # TODO subscr error
-            return
-
-        # TODO subscr change
+        self.database.updateDeviceBus(self.serial, busid)
+        self.database.sendDeviceSubscription(self.serial, {
+            "event": "export",
+            "device": self.serial,
+            "bus": busid
+        })
 
     def handleRemoveDevice(self, udevinfo):
         identifier = udevinfo.get("DEVNAME")
@@ -187,4 +192,8 @@ class Device:
         """Event handler for when a usbip disconnect is detected"""
         self.exported_busid = None
         self.database.removeDeviceBus(self.serial)
+        self.database.sendDeviceSubscription(self.serial, {
+            "event": "disconnect",
+            "serial": self.serial
+        })
     

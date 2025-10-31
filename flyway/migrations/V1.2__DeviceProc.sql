@@ -61,21 +61,3 @@ BEGIN
     WHERE SerialID = deviceserial;
 END
 $$;
-
-CREATE FUNCTION getDeviceCallBack(deviceserial varchar(255))
-RETURNS TABLE (
-    "NotificationUrl" varchar(255)
-)
-LANGUAGE plpgsql
-AS
-$$
-BEGIN
-    IF deviceserial NOT IN (SELECT Device FROM Reservations) THEN
-        RAISE EXCEPTION 'SerialID does not exist';
-    END IF;
-
-    RETURN QUERY SELECT NotificationUrl FROM Reservations
-    WHERE Device = deviceserial;
-
-END
-$$;
