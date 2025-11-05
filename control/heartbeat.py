@@ -131,6 +131,7 @@ def main():
     schedule.every(TIMEOUT_POLL).seconds.do(lambda : Thread(target=worker_timeouts).start())
     schedule.every(HEARTBEAT_TIME).seconds.do(lambda : Thread(target=query_workers).start())
     schedule.every(RESERVATION_POLL).seconds.do(lambda : Thread(target=reservation_timeouts).start())
+    # TODO reservation halfway notifs
 
     while True:
         schedule.run_pending()

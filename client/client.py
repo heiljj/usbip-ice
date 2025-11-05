@@ -188,30 +188,51 @@ class Client:
         
         return connections
 
-    def flash(serials, firmware_path):
+    def flash(self, serials, firmware_path):
         #TODO
         pass
 
-    def getDevs(serials):
+    def getDevs(self, serials):
         """Returns a dict mapping device serials to list of dev file paths. This operation 
         looks through all available dev files and is intended to be only used once after reserving devices.
         If you are dealing with frequent dev file changes, you should use a pyudev MonitorObserver instead."""
-        pass
-        context = pyudev.Context.list_devices()
+        out = {}
+
+        context = pyudev.Context().list_devices()
         for dev in context:
-            pass
-            #TODO
+            values = dict(dev)
+            serial = get_serial(values)
+
+            if not serial:
+                continue
             
+            if serial not in serials:
+                continue
 
-    def extend(serial):
+            devname = values.get("DEVNAME")
+
+            if not devname:
+                continue
+
+            if serial not in out:
+                out[serial] = []
+            
+            out[serial].append(devname)
+        
+        return out
+
+    def extend(self, serial):
+        # TODO
         pass
 
-    def extendAll(serial):
+    def extendAll(self, serial):
+        # TODO
         pass
 
-    def unreserve(serial):
+    def unreserve(self, serial):
+        # TODO
         pass
 
-    def unreserveAll(serial):
+    def unreserveAll(self, serial):
+        # TODO
         pass
-
