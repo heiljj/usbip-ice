@@ -5,3 +5,5 @@ __pycache__
 worker/firmware/build
 worker/firmware/pico-ice-sdk
 worker/firmware/pico-sdk
+
+usbipice.egg-info

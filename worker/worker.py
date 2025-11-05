@@ -1,24 +1,15 @@
-from blacksheep import get, Application, json, Response, Request
-import uvicorn
+from flask import Flask, request, Response
 import logging
 import sys
 import atexit
 import sys
 import os
 
-from DeviceManager import DeviceManager
-from Database import Database
-from utils import getIp
+from worker.DeviceManager import DeviceManager
+from worker.WorkerDatabase import WorkerDatabase
+from utils.utils import getIp
 
-
-if __name__ == "__main__":
-    SERVER_PORT = os.environ.get("USBIPICE_EXPORTED_SERVER_PORT")
-    if not SERVER_PORT:
-        SERVER_PORT = 8080
-
-    uvicorn.run("worker:app", host="0.0.0.0", port=SERVER_PORT)
-else:
-    # this is run by uvicorn
+def main():
     logger = logging.getLogger(__name__)
     logger.setLevel(logging.DEBUG)
     logger.addHandler(logging.StreamHandler(sys.stdout))
@@ -53,29 +44,38 @@ else:
     else:
         USBIP_PORT = int(USBIP_PORT)
     
-    db = Database(DATABASE_URL, CLIENT_NAME, IP, SERVER_PORT, USBIP_PORT, logger)
+    db = WorkerDatabase(DATABASE_URL, CLIENT_NAME, IP, SERVER_PORT, USBIP_PORT, logger)
     manager = DeviceManager(db, logger)
 
     atexit.register(lambda : manager.onExit())
 
-    app = Application()
+    app = Flask(__name__)
 
-@get("/heartbeat")
-def heartbeat():
-    return Response(200)
-
-@get("/unreserve")
-async def devices_bus(req: Request):
-    args = await req.json()
-    if not args:
-        return Response(400)
-
-    serial = args.get("serial")
-    if not serial:
-        return Response(400)
-
-    if manager.unreserve(serial):
+    @app.get("/heartbeat")
+    def heartbeat():
         return Response(200)
-    else:
-        return Response(400)
 
+    @app.get("/unreserve")
+    async def devices_bus():
+        if request.content_type != "application/json":
+            return Response(400)
+
+        try:
+            json = request.get_json()
+        except:
+            return Response(400)
+        
+        serial = json.get("serial")
+
+        if not serial:
+            return Response(400)
+
+        if manager.unreserve(serial):
+            return Response(200)
+        else:
+            return Response(400)
+
+    app.run()
+
+if __name__ == "__main__":
+    main()

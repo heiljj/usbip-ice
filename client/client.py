@@ -3,10 +3,11 @@ import threading
 from abc import ABC, abstractmethod
 import subprocess
 import requests
+import pyudev
+from utils.utils import get_serial
 
-def service(port, eventhandler, cl):
+def service(port, eventhandler, client):
     app = Flask(__name__)
-    app.config["client"] = cl
 
     @app.route("/")
     def handle():
@@ -35,7 +36,7 @@ def service(port, eventhandler, cl):
                 eventhandler.handleReservationEnd(serial)
                 pass
             case "export":
-                connection_info = cl.getConnectionInfo(serial)
+                connection_info = client.getConnectionInfo(serial)
 
                 if not connection_info:
                     return Response(400)
@@ -135,23 +136,30 @@ class DefaultEventHandler(EventHandler):
     
 
 class Client:
-    def __init__(self, hostname, control_server_url):
-        self.thread = None
+    def __init__(self, clientname, control_server_url):
         # serial -> (ip, port)
         self.serial_locations = {}
+        self.clientname = clientname
         self.control_server_url = control_server_url
+
+        self.thread = None
     
     def getConnectionInfo(self, serial):
+        """Returns the (ip, port) needed to connect to a device with usbip."""
         return self.serial_locations.get(serial)
 
     def startService(self, port, eventhandler):
+        """Starts listening for device events on the specified port using the eventhandler."""
         self.thread = threading.Thread(target=lambda : service(port, eventhandler, self))
         self.thread.start()
 
     def reserve(self, amount):
+        """Reserves and connects to the specified amount of devices and returns their serials.
+        If there are not enough devices available, it will reserve as many as it can."""
         try:
             data = requests.get(f"{self.control_server_url}/reserve", data={
-                "amount":amount
+                "amount":amount,
+                "name": self.name
             })
 
             json = data.json()
@@ -181,10 +189,19 @@ class Client:
         return connections
 
     def flash(serials, firmware_path):
+        #TODO
         pass
 
-    def getDevs(serial):
+    def getDevs(serials):
+        """Returns a dict mapping device serials to list of dev file paths. This operation 
+        looks through all available dev files and is intended to be only used once after reserving devices.
+        If you are dealing with frequent dev file changes, you should use a pyudev MonitorObserver instead."""
         pass
+        context = pyudev.Context.list_devices()
+        for dev in context:
+            pass
+            #TODO
+            
 
     def extend(serial):
         pass

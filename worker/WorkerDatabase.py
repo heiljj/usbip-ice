@@ -1,34 +1,23 @@
 import psycopg
-from psycopg.types.enum import Enum, EnumInfo, register_enum
-from enum import Enum
 import requests
 
-class DeviceState(Enum):
-    available = 0
-    reserved = 1
-    await_flash_default = 2
-    flashing_default = 3
-    testing = 4
-    broken = 5
+from utils.Database import Database
 
-class Database:
+class WorkerDatabase(Database):
     def __init__(self, dburl: str, clientname: str, exported_ip: str, exported_server_port: int, exported_usbip_port: int, logger):
-        self.url = dburl
+        super().__init__(dburl)
         self.clientname = clientname
         self.logger = logger
 
         try:
             with psycopg.connect(self.url) as conn:
-                info = EnumInfo.fetch(conn, "DeviceState")
-                register_enum(info, conn, DeviceState)
-
                 with conn.cursor() as cur:
                     cur.execute("CALL addWorker(%s::varchar(255), %s::inet, %s::int, %s::int)", (clientname, exported_ip, exported_usbip_port, exported_server_port))
                     conn.commit()
 
         except Exception:
-            logger.critical("Failed to connect to database")
-            raise Exception("Failed to connect to database")
+            logger.critical("Failed to add worker to database")
+            raise Exception("Failed to add worker to database")
 
     
     def addDevice(self, deviceserial):
@@ -74,9 +63,6 @@ class Database:
             requests.get(url, data=contents)
         except:
             self.logger.warning(f"failed to send subscription update for {deviceserial} to {url}")
-            #TODO
-            print(f"DATA: {contents
-                           }")
         else:
             self.logger.debug(f"sent subscription update for {deviceserial} to {url}")
 

@@ -3,6 +3,29 @@ import subprocess
 import threading
 from pexpect import fdpexpect
 
+def get_serial(dev):
+    """Obtains the serial from a dev file dict. Returns false if the dev file 
+    is not related to pico2-ice."""
+    devname = dev.get("DEVNAME")
+
+    if not devname:
+        return False
+
+    if not re.match("/dev/", devname) or re.match("/dev/bus/", devname):
+        return False
+
+    id_model = dev.get("ID_MODEL")
+
+    if id_model != "RP2350" and id_model != 'pico-ice' and id_model != 'Pico':
+        return False
+    
+    serial = dev.get("ID_SERIAL_SHORT")
+
+    if serial:
+        return serial
+    
+    return False
+
 def check_default(devpath):
     # TODO 
     # Sometimes closing the fd takes a long time (> 10s) on some firmwares,

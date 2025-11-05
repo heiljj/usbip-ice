@@ -1,8 +1,9 @@
 import os
 from enum import Enum
 from threading import Lock
+from importlib.resources import files
 
-from utils import *
+from utils.utils import *
 
 class Mode(Enum):
     NORMAL = 0
@@ -130,11 +131,11 @@ class Device:
 
         elif udevinfo.get("DEVTYPE") == "partition":
             self.logger.info(f"found bootloader candidate {udevinfo["DEVNAME"]} for {self.serial}")
-            path = f"media/{self.serial}"
+            path = os.path.join("media", self.serial)
             if not os.path.isdir(path):
                 os.mkdir(path)
             
-            mounted = mount(udevinfo["DEVNAME"], f"media/{self.serial}")
+            mounted = mount(udevinfo["DEVNAME"], path)
 
             if not mounted:
                 self.logger.warning(f"detected potential bootloader drive for {self.serial} device {format_dev_file(udevinfo)} but failed to mount")
@@ -148,7 +149,16 @@ class Device:
 
                 return
             
-            subprocess.run(["sudo", "cp", "default_firmware.uf2", path])
+            try:
+                with open(os.path.join(path, "default_firmware.uf2"), "wb") as f:
+                    f.write(files("worker").joinpath("default_firmware.uf2").read_bytes())
+            except:
+                self.logger.error(f"unable to upload firmware to {self.serial} at {format_dev_file(udevinfo)}")
+                umount(path)
+                self.database.updateDeviceStatus(self.serial, "broken")
+                self.mode = Mode.BROKEN
+                return
+
             unmounted = umount(path)
 
             if not unmounted:

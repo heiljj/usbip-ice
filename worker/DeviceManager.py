@@ -2,8 +2,8 @@ import pyudev
 import re
 import os
 
-from utils import *
-from Device import Device
+from utils.utils import *
+from worker.Device import Device
 
 class DeviceManager:
     def __init__(self, database, logger, unbind_on_exit=True):
@@ -12,6 +12,9 @@ class DeviceManager:
         self.devs = {}
 
         self.unbind_on_exit = unbind_on_exit
+
+        if not os.path.isdir("media"):
+            os.mkdir("media")
 
         context = pyudev.Context()
         monitor = pyudev.Monitor.from_netlink(context)
@@ -38,21 +41,8 @@ class DeviceManager:
     
     def handleDevEvent(self, action, dev):
         dev = dict(dev)
-        devname = dev.get("DEVNAME")
 
-        if not devname:
-            return
-
-        if not re.match("/dev/", devname) or re.match("/dev/bus/", devname):
-            return
-
-        id_model = dev.get("ID_MODEL")
-
-        # TODO we should have a config file for this stuff
-        if id_model != "RP2350" and id_model != 'pico-ice' and id_model != 'Pico':
-            return 
-        
-        serial = dev.get("ID_SERIAL_SHORT")
+        serial = get_serial(dev)
 
         if not serial:
             return

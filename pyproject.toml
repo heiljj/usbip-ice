@@ -1,0 +1,16 @@
+[project]
+name = "usbipice"
+version = "0.1"
+
+[project.scripts]
+worker = "worker:worker.main"
+control = "control:server"
+
+[tool.setuptools]
+py-modules = ["client", "worker", "control"]
+
+[tools.setuptools.find]
+where = ["worker/firmware/build"]
+
+[tool.setuptools.package-data]
+data = ["worker/firmware/build/default_firmware.uf2"]
