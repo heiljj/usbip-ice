@@ -4,7 +4,9 @@ from abc import ABC, abstractmethod
 import subprocess
 import requests
 import pyudev
-from utils.utils import get_serial
+import threading
+
+from utils.utils import *
 
 def service(port, eventhandler, client):
     app = Flask(__name__)
@@ -188,10 +190,6 @@ class Client:
         
         return connections
 
-    def flash(self, serials, firmware_path):
-        #TODO
-        pass
-
     def getDevs(self, serials):
         """Returns a dict mapping device serials to list of dev file paths. This operation 
         looks through all available dev files and is intended to be only used once after reserving devices.
@@ -220,6 +218,35 @@ class Client:
             out[serial].append(devname)
         
         return out
+
+    def flash(self, serials, firmware_path):
+        dev_files = self.getDevs(serials)
+
+        lock = threading.Lock()
+        lock.acquire()
+
+        remaining_serials = serials
+        failed_serials = []
+
+        def handle_event(action, dev):
+            # TODO
+
+            if not remaining_serials:
+                lock.release()
+
+        context = pyudev.Context()
+        monitor = pyudev.Monitor.from_netlink(context)
+        observer = pyudev.MonitorObserver(monitor, handle_event, name="client-pyudev-monitor")
+        observer.start()
+
+        for device in dev_files.values():
+            for file in device:
+                if (path := file.get("DEVNAME")):
+                    send_bootloader(path)
+        
+        lock.acquire()
+        observer.send_stop()
+
 
     def extend(self, serials):
         try:
