@@ -53,29 +53,29 @@ def main():
 
     @app.get("/heartbeat")
     def heartbeat():
-        return Response(200)
+        return Response(status=200)
 
     @app.get("/unreserve")
     async def devices_bus():
         if request.content_type != "application/json":
-            return Response(400)
+            return Response(status=400)
 
         try:
             json = request.get_json()
         except Exception:
-            return Response(400)
+            return Response(status=400)
         
         serial = json.get("serial")
 
         if not serial:
-            return Response(400)
+            return Response(status=400)
 
         if manager.unreserve(serial):
-            return Response(200)
+            return Response(status=200)
         else:
-            return Response(400)
+            return Response(status=400)
 
-    app.run(port=SERVER_PORT)
+    app.run(port=SERVER_PORT, host="0.0.0.0")
 
 if __name__ == "__main__":
     main()

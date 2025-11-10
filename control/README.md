@@ -2,15 +2,16 @@
 
 ### Postgres
 Install 
-```sudo apt install postgresql```
-Start a shell
-```sudo -u postgres psql postgres```
-Create database and user
+```sudo apt install postgresql```.
+Start a shell with
+```sudo -u postgres psql```.
+Create database and user:
 ```
 CREATE ROLE {user} LOGIN PASSWORD {pass};
 CREATE DATABASE {name} WITH OWNER = {user};
 ```
-Configure remote connections. This can be done by modifying /etc/postgresql/{}/main/pg_hba.conf.
+Configure remote connections. This can be done by modifying /etc/postgresql/{}/main/pg_hba.conf. Afterwards, apply the changes with 
+```service postgresql@{}-main.service reload```.
 
 ### Flyway
 - Install [Flyway](https://documentation.red-gate.com/fd/command-line-277579359.html)

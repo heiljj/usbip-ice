@@ -5,22 +5,22 @@ from control.ControlDatabase import ControlDatabase
 
 def expect_json(parms, fun):
     if request.content_type != "application/json":
-        return Response(400)
+        return Response(status=400)
     try:
         json = request.get_json()
     except Exception:
-        return Response(400)
+        return Response(status=400)
     
     args = []
 
     for p in parms:
         value = json.get(p)
         if not value:
-            return Response(400)
+            return Response(status=400)
         args.append(value)
     
     if len(args) != len(parms):
-        return Response(400)
+        return Response(status=400)
     
     return jsonify(fun(*args))
 

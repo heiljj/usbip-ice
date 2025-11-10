@@ -6,6 +6,7 @@ version = "0.1"
 worker = "worker:worker.main"
 control = "control:server.main"
 usbipconnect = "client:cli.main"
+heartbeat = "control:heartbeat.main"
 
 [tool.setuptools]
 py-modules = ["client", "worker", "control", "utils"]

@@ -24,7 +24,7 @@ class HeartbeatDatabase(Database):
         try:
             with psycopg.connect(self.url) as conn:
                 with conn.cursor() as cur:
-                    cur.execute("CALL heartbeatWorker(%s::nvarchar(255))", (name,))
+                    cur.execute("CALL heartbeatWorker(%s::varchar(255))", (name,))
         except Exception:
             self.logger.error(f"failed to update heartbeat on {name}")
     

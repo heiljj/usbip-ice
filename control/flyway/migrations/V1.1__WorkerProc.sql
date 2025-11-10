@@ -67,7 +67,7 @@ AS
 $$
 DECLARE t timestamp;
 BEGIN
-    t := CURRENT_TIMESTAMP + s * interval '1 second';
+    t := CURRENT_TIMESTAMP - s * interval '1 second';
     RETURN QUERY
     SELECT Worker, NotificationUrl, SerialId
     FROM Worker
