@@ -182,13 +182,6 @@ class Device:
     def handleUsbipDisconnect(self):
         """Event handler for when a usbip disconnect is detected"""
         with self.lock:
-            # our locks are unreliable as sometimes the events happen in unexpected orders
-            # sometimes, when a device briefly disconnects, the user device ADD will be triggered
-            # before the kernel REMOVE
-            # this prevents this from causing a bus to be falsy removed
-            if self.exported_busid in get_exported_buses():
-                return
-            
             self.logger.info(f"device {self.serial} on bus {self.exported_busid} disconnected while exporting usbip")
             self.exported_busid = None
             self.database.removeDeviceBus(self.serial)
@@ -196,4 +189,3 @@ class Device:
                 "event": "disconnect",
                 "serial": self.serial
             })
-    
