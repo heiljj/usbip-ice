@@ -102,7 +102,7 @@ def get_exported_buses():
     if p.returncode != 0:
         return False
 
-    return re.findall("([0-9]+-[0-9]+):", str(p.stdout))
+    return re.findall("([0-9]+-([0-9]|\\.)+):", str(p.stdout))
 
 # some devices like disks will show up as multiple devices since there are
 # also partitions, but these will have the same busid. If one of these are 
@@ -113,14 +113,11 @@ def get_busid(udevinfo):
     if not dev_path:
         return None
     
-    capture = re.search("/usb1/(.*?)/", dev_path).group(1)
-    busid = re.search("(.*?)-", capture).group(1)
-    busid = int(float(busid))
-
-    devid = re.search("-(.*?)$", capture).group(1)
-    devid = int(float(devid))
-
-    return f"{busid}-{devid}"
+    # TODO really need to find a better way to do this
+    capture = re.search("/usb1/.*?/(.*?)([:/]|$)", dev_path)
+    if capture:
+        return capture.group(1)
+    return None
 
 def usbip_bind(busid):
     try:

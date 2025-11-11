@@ -62,7 +62,7 @@ class Device:
         busid = get_busid(udevinfo)
 
         # this can happen if multiple device adds get queued 
-        if busid == self.exported_busid:
+        if busid == self.exported_busid and busid not in get_exported_buses():
             return
 
         binded = usbip_bind(busid)
@@ -102,10 +102,11 @@ class Device:
             self.logger.info(f"reflashing device {self.serial} to default firmware")
             self.mode = Mode.BOOTLOADER
 
-            files = list(self.dev_files.values())
+            paths = list(self.dev_files.keys())
 
-            for file in files:
-                del self.dev_files[file]
+            for p in paths:
+                file = self.dev_files[p]
+                del self.dev_files[p]
                 self.handleAddDevice(file, have_lock=True)
 
             if self.exported_busid:
@@ -180,10 +181,19 @@ class Device:
 
     def handleUsbipDisconnect(self):
         """Event handler for when a usbip disconnect is detected"""
-        self.exported_busid = None
-        self.database.removeDeviceBus(self.serial)
-        self.database.sendDeviceSubscription(self.serial, {
-            "event": "disconnect",
-            "serial": self.serial
-        })
+        with self.lock:
+            # our locks are unreliable as sometimes the events happen in unexpected orders
+            # sometimes, when a device briefly disconnects, the user device ADD will be triggered
+            # before the kernel REMOVE
+            # this prevents this from causing a bus to be falsy removed
+            if self.exported_busid in get_exported_buses():
+                return
+            
+            self.logger.info(f"device {self.serial} on bus {self.exported_busid} disconnected while exporting usbip")
+            self.exported_busid = None
+            self.database.removeDeviceBus(self.serial)
+            self.database.sendDeviceSubscription(self.serial, {
+                "event": "disconnect",
+                "serial": self.serial
+            })
     

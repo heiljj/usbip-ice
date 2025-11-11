@@ -4,6 +4,7 @@ import sys
 import atexit
 import sys
 import os
+from waitress import serve
 
 from worker.DeviceManager import DeviceManager
 from worker.WorkerDatabase import WorkerDatabase
@@ -75,7 +76,7 @@ def main():
         else:
             return Response(status=400)
 
-    app.run(port=SERVER_PORT, host="0.0.0.0")
+    serve(app, port=SERVER_PORT)
 
 if __name__ == "__main__":
     main()

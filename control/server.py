@@ -1,6 +1,8 @@
 from flask import Flask, request, Response, jsonify
 import os
 import psycopg
+from waitress import serve
+
 from control.ControlDatabase import ControlDatabase
 
 def expect_json(parms, fun):
@@ -59,7 +61,7 @@ def main():
     def endall():
         return expect_json(["name"], database.endAll)
     
-    app.run()
+    serve(app)
 
 if __name__ == "__main__":
     main()

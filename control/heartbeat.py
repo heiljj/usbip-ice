@@ -93,10 +93,16 @@ def main():
             for serial, url in data:
                 send_event(url, serial, "reservation ending soon")
 
+    heartbeat_workers()
+    worker_timeouts()
+    reservation_timeouts()
+    reservation_ending_soon()
+
     schedule.every(HEARTBEAT_POLL).seconds.do(lambda : Thread(target=heartbeat_workers).start())
     schedule.every(TIMEOUT_POLL).seconds.do(lambda : Thread(target=worker_timeouts).start())
     schedule.every(RESERVATION_POLL).seconds.do(lambda : Thread(target=reservation_timeouts).start())
     schedule.every(RESERVATION_EXPIRING_POLL).seconds.do(lambda : Thread(target=reservation_ending_soon).start())
+
 
     while True:
         schedule.run_pending()

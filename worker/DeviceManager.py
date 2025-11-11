@@ -84,14 +84,12 @@ class DeviceManager:
         if not devpath:
             return
         
-        busid = re.search("/([0-9]+-[0-9]+)$", devpath)
+        busid = get_busid(dict(dev))
 
         if not busid:
             self.logger.error(f"Kernel event for remove {format_dev_file(dev)} but was unable to parse busid from devpath. Device may no longer be available through usbip.")
             return
         
-        busid = busid.group(1)
-
         connected_buses = get_exported_buses()
 
         if connected_buses == False:
@@ -110,7 +108,6 @@ class DeviceManager:
                 continue
 
             dev.handleUsbipDisconnect()
-            self.logger.info(f"device {dev.serial} on bus {busid} disconnected while exporting usbip")
             return
         
         self.logger.warning(f"Bus {busid} was disconnected but no devices were exporting on that bus - this may be an unrelated usb device")
