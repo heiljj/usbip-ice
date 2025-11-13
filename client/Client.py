@@ -66,11 +66,11 @@ class Client:
                     if not bus:
                         return Response(status=400)
 
-                    eventhandler.handleExport(serial, bus, ip, port)
+                    eventhandler.handleExport(self, serial, bus, ip, str(port))
                 case "disconnect":
-                    eventhandler.handleDisconnect(serial)
+                    eventhandler.handleDisconnect(self, serial)
                 case "reservation halfway":
-                    eventhandler.handleReservationHalfway(serial)
+                    eventhandler.handleReservationHalfway(self, serial)
                 case _:
                     return Response(status=400)
             
@@ -105,7 +105,7 @@ class Client:
 
         for row in json:
             self.serial_locations[row["serial"]] = (row["ip"], row["usbipport"])
-            self.eventhandler.handleExport(row["serial"], row["bus"], row["ip"], row["usbipport"])
+            self.eventhandler.handleExport(self, row["serial"], row["bus"], row["ip"], row["usbipport"])
             connections.append(row["serial"])
         
         return connections

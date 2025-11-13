@@ -133,6 +133,16 @@ def usbip_unbind(busid):
         return False
     return p.returncode == 0
 
+def usbip_attach(ip, busid, tcp_port="3240"):
+    try:
+        p = subprocess.run(["sudo", "usbip", "--tcp-port", str(tcp_port), "attach", "-r", ip, "-b", busid], timeout=5, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        if p.returncode != 0:
+            raise Exception
+    except:
+        return False
+    
+    return True
+
 def send_bootloader(path, timeout=10):
     def send():
         try:
