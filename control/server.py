@@ -67,6 +67,9 @@ def main():
     def end():
         data = expect_json(["name", "serials"], database.end)
 
+        if not data:
+            return jsonify({})
+
         for row in data:
             try:
                 res = requests.get(data["subscriptionurl"], json={
@@ -94,6 +97,9 @@ def main():
     @app.get("/endall")
     def endall():
         data = expect_json(["name"], database.endAll)
+
+        if not data:
+            return jsonify({})
 
         for row in data:
             try:

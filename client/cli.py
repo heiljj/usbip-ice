@@ -2,6 +2,7 @@ import argparse
 import os
 import logging
 import sys
+import signal
 
 from client.Client import Client
 from client.EventHandler import DefaultEventHandler
@@ -43,12 +44,26 @@ def main():
     logger.info("Reserving devices...")
     serials = client.reserve(amount)
 
+    def handler(sig, frame):
+        logger.info("Ending reservations...")
+        client.end(serials)
+
+        logger.info("Stopping service...")
+        client.stopService()
+
+        logger.info("Session ended.")
+        sys.exit(0)
+    
+    signal.signal(signal.SIGINT, handler)
+
     if not serials:
-        raise Exception("Failed to reserve any devices.")
+        logger.error("Failed to reserve any devices.")
+        sys.exit(1)
 
     if len(serials) != amount:
+        logger.error(f"Requested {amount} devices but only got {len(serials)}. Ending reservation and exiting.")
         client.end(serials)
-        raise Exception(f"Requested {amount} devices but only got {len(serials)}. Ending reservation and exiting.")
+        sys.exit(1)
     
     logger.info(f"Successfully reserved {amount} devices.")
     
@@ -58,16 +73,13 @@ def main():
         failed = client.flash(serials, firmware, 120)
 
         if failed:
+            logger.error(f"{len(failed)} devices failed to flash. Ending reservation and exiting.")
             client.end(serials)
-            raise Exception(f"{len(failed)} devices failed to flash. Ending reservation and exiting.")
+            sys.exit(1)
         
         logger.info("Flashing successful!")
     
-    logger.info("Devices are now ready. Press enter to end the session. Note that this will free the reserved devices.")
-    input()
-    client.end(serials)
-    client.stopService()
-    print("Session ended.")
+    logger.info("Devices are now ready.")
 
 if __name__ == "__main__":
     main()
