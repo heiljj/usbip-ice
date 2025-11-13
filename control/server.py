@@ -69,17 +69,23 @@ def main():
 
         for row in data:
             try:
-                requests.get(data["subscriptionurl"], json={
+                res = requests.get(data["subscriptionurl"], json={
                     "event": "reservation end",
                     "serial": row["serial"]
                 })
+
+                if res.status_code != 200:
+                    raise Exception
             except:
                 logger.warning(f"failed to notify {row["subscriptionurl"]} device {row["serial"]} of reservation end")
             
             try:
-                requests.get(f"http://{row["workerip"]}:{row["workerport"]}/unreserve", json={
+                res = requests.get(f"http://{row["workerip"]}:{row["workerport"]}/unreserve", json={
                     "serial": row["serial"]
                 })
+
+                if res.status_code != 200:
+                    raise Exception
             except:
                 logger.warning(f"failed to notify worker {row["workerip"]} of reservation on {row["serial"]} ending")
         
