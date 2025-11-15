@@ -74,8 +74,8 @@ class DefaultEventHandler(EventHandler):
         client.removeSerial(serial)
     
     def handleTimeout(self, client, serial, ip, port):
-        #TODO
         self.logger.warning(f"{serial} timed out at {ip}:{port}")
+        client.unbind(serial)
     
     def exit(self, client):
         pass

@@ -72,7 +72,7 @@ def main():
     if firmware:
         logger.info("Flashing devices...")
 
-        failed = client.flash(serials, firmware, 120)
+        failed = client.flash(serials, firmware, 240)
 
         if failed:
             logger.error(f"{len(failed)} devices failed to flash. Ending reservation and exiting.")

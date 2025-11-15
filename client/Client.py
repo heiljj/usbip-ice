@@ -72,4 +72,4 @@ class Client(ControlAPI, DeviceUtils):
             self.logger.error(f"device {serial} timed out but no connection information")
             return
         
-        self.event_server.triggerTimeout(serial, conninfo.ip, conninfo.port)
+        self.event_server.triggerTimeout(serial, conninfo.ip, conninfo.serverport)

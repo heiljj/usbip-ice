@@ -72,6 +72,9 @@ class ControlAPI:
         })
 
     def end(self, serials):
+        if type(serials) != list:
+            serials = list(serials)
+
         json = self.__requestControl("end", {
             "name": self.clientname,
             "serials": serials
