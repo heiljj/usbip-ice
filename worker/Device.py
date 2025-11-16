@@ -72,10 +72,6 @@ class Device:
 
         self.logger.info(f"binded dev {format_dev_file(udevinfo)} on {busid}")
 
-        # if we attach to a bus after it has been bound
-        # too quickly, devices do not show properly 
-        time.sleep(3)
-
         self.exported_busid = busid
         self.database.updateDeviceBus(self.serial, busid)
         self.database.sendDeviceSubscription(self.serial, {
