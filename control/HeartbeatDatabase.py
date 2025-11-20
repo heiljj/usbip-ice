@@ -4,7 +4,7 @@ from utils.Database import Database
 
 class HeartbeatDatabase(Database):
     def __init__(self, dburl: str, logger):
-        super().__init__(dburl)
+        super().__init__(dburl, logger)
         self.logger = logger
     
     def getWorkers(self):

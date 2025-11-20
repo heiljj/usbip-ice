@@ -148,10 +148,7 @@ $$;
 
 CREATE FUNCTION handleReservationTimeouts()
 RETURNS TABLE (
-    "Device" varchar(255),
-    "NotificationUrl" varchar(255),
-    "WorkerIp" inet,
-    "WorkerServerPort" int
+    "Device" varchar(255)
 )
 LANGUAGE plpgsql
 AS
@@ -167,11 +164,8 @@ BEGIN
     WHERE Until < CURRENT_TIMESTAMP;
 
     RETURN QUERY 
-    SELECT res."Device", Reservations.NotificationUrl, Worker.Host, Worker.ServerPort
-    FROM res
-    INNER JOIN Reservations ON res."Device" = Reservations.Device
-    INNER JOIN Device ON res."Device" = Device.SerialID
-    INNER JOIN Worker ON Device.Worker = Worker.WorkerName;
+    SELECT res."Device"
+    FROM res;
 
     DELETE FROM Reservations
     WHERE Device IN (SELECT res."Device" FROM res);
@@ -184,15 +178,14 @@ $$;
 
 CREATE FUNCTION getReservationsEndingSoon(mins int)
 RETURNS TABLE (
-    "Device" varchar(255),
-    "NotificationUrl" varchar(255)
+    "Device" varchar(255)
 )
 LANGUAGE plpgsql
 AS
 $$
 BEGIN
     RETURN QUERY
-    SELECT Reservations.Device, Reservations.NotificationUrl
+    SELECT Reservations.Device
     FROM Reservations
     WHERE Reservations.Until < CURRENT_TIMESTAMP + interval '1 minute' * mins;
 END
@@ -212,5 +205,25 @@ BEGIN
 
     RETURN QUERY SELECT NotificationUrl FROM Reservations
     WHERE Device = deviceserial;
+END
+$$;
+
+CREATE FUNCTION getDeviceWorker(deviceserial varchar(255))
+RETURNS TABLE (
+    "Host" inet,
+    "Serverport" int
+)
+LANGUAGE plpgsql
+AS
+$$
+BEGIN
+    IF deviceserial NOT IN (SELECT SerialId FROM Device) THEN
+        RAISE EXCEPTION 'SerialID does not exist';
+    END IF;
+
+    RETURN QUERY SELECT Worker.Host, Worker.ServerPort
+    FROM Device
+    INNER JOIN Worker ON Device.Worker = Worker.WorkerName
+    WHERE Device.SerialId = deviceserial;
 END
 $$;

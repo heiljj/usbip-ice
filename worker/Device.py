@@ -14,11 +14,12 @@ class Mode(Enum):
     BROKEN = 3
 
 class Device:
-    def __init__(self, serial, logger, database, dev_files={}, bootloader_timeout_duration=30):
+    def __init__(self, serial, logger, database, notif, dev_files={}, bootloader_timeout_duration=30):
         self.serial = serial
         self.logger = logger
         self.dev_files = dev_files
         self.database = database
+        self.notif = notif
 
         self.mode = Mode.NORMAL
         self.bootloader_timeout_clock = None
@@ -76,11 +77,7 @@ class Device:
 
         self.exported_busid = busid
         self.database.updateDeviceBus(self.serial, busid)
-        self.database.sendDeviceSubscription(self.serial, {
-            "event": "export",
-            "serial": self.serial,
-            "bus": busid
-        })
+        self.notif.sendDeviceExport(self.serial, busid)
 
     def handleRemoveDevice(self, udevinfo):
         identifier = udevinfo.get("DEVNAME")
@@ -127,6 +124,7 @@ class Device:
                     self.exported_busid = None
                 else:
                     self.logger.error(f"failed to unbind bus {self.exported_busid} (was the device disconnected?)")
+                    self.notif.sendDeviceFailure(self.serial)
                     self.database.updateDeviceStatus(self.serial, "broken")
                     return
             
@@ -168,10 +166,6 @@ class Device:
 
             self.mode = Mode.BROKEN
             self.database.updateDeviceStatus(self.serial, "broken")
-            self.database.sendDeviceSubscription(self.serial, {
-                "event": "disconnect",
-                "serial": self.serial
-            })
             self.logger.error(f"device {self.serial} timed out while flashing default firmware")
 
     def handleTestAdd(self, udevinfo):
@@ -212,7 +206,4 @@ class Device:
             self.logger.info(f"device {self.serial} on bus {self.exported_busid} disconnected while exporting usbip")
             self.exported_busid = None
             self.database.removeDeviceBus(self.serial)
-            self.database.sendDeviceSubscription(self.serial, {
-                "event": "disconnect",
-                "serial": self.serial
-            })
+            self.notif.sendDeviceDisconnect(self.serial)

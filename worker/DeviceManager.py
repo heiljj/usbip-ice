@@ -7,8 +7,9 @@ from utils.utils import *
 from worker.Device import Device
 
 class DeviceManager:
-    def __init__(self, database, logger, unbind_on_exit=True):
+    def __init__(self, database, notif, logger, unbind_on_exit=True):
         self.logger = logger
+        self.notif = notif
         self.database = database
         self.devs = {}
 
@@ -62,7 +63,7 @@ class DeviceManager:
     def handleAddDevice(self, serial, udevinfo):
         if serial not in self.devs:
             self.logger.info(f"Creating device with serial {serial}")
-            self.devs[serial] = Device(serial, self.logger, self.database)
+            self.devs[serial] = Device(serial, self.logger, self.database, self.notif)
 
             if not self.database.addDevice(serial):
                 del self.devs[serial]

@@ -58,8 +58,6 @@ $$;
 
 CREATE FUNCTION handleWorkerTimeouts(s int)
 RETURNS TABLE (
-    "Worker" varchar(255),
-    "NotificationUrl" varchar(255),
     "SerialId" varchar(255)
 )
 LANGUAGE plpgsql
@@ -69,10 +67,9 @@ DECLARE t timestamp;
 BEGIN
     t := CURRENT_TIMESTAMP - s * interval '1 second';
     RETURN QUERY
-    SELECT Worker, NotificationUrl, SerialId
+    SELECT Device.SerialId
     FROM Worker
     INNER JOIN Device ON Worker.WorkerName = Device.Worker
-    LEFT JOIN Reservations ON Reservations.Device = Device.SerialId
     WHERE LastHeartbeat < t;
     
     DELETE FROM Worker

@@ -5,7 +5,9 @@ import requests
 from threading import Thread
 import schedule
 import time
+
 from utils.utils import get_env_default
+from utils.NotificationSender import NotificationSender
 from control.HeartbeatDatabase import HeartbeatDatabase 
 
 def main():
@@ -29,6 +31,7 @@ def main():
     RESERVATION_EXPIRING_NOTIFY_AT = int(get_env_default("USBIP_RESERVATION_EXPIRING_NOTIFY_AT_MINUTES", "20", logger))
 
     database = HeartbeatDatabase(DATABASE_URL, logger)
+    notif = NotificationSender(DATABASE_URL, logger)
 
 
     def heartbeat_workers():
@@ -49,54 +52,22 @@ def main():
             else:
                 database.heartbeatWorker(name)
             
-    
-    def send_event(url, serial, event):
-        if not url:
-            logger.warning(f"device {serial} had event {event} but no callback subscription")
-            return
-        
-        try:
-            res = requests.get(url, json={
-                "event": event,
-                "serial": serial
-            })
-
-            if res.status_code != 200:
-                raise Exception
-        except Exception:
-            logger.warning(f"failed to notify {url} device {serial} of {event}")
-
     def worker_timeouts():
         data = database.getWorkerTimeouts(TIMEOUT_DURATION)
         if data:
-            for worker, url, serial in data:
-                send_event(url, serial, "failure")
-
-    def reservation_notification(serial, url, workerip, workerport):
-        send_event(url, serial, "reservation end")
-        
-        try:
-            res = requests.get(f"http://{workerip}:{workerport}/unreserve", json={
-                "serial": serial
-            })
-
-            if res.status_code != 200:
-                raise Exception
-        except Exception:
-            logger.warning(f"failed to notify worker {workerip}:{workerport} of device {serial} reservation ending")
+            for serial in data:
+                notif.sendDeviceFailure(serial)
 
     def reservation_timeouts():
-        data = database.getReservationTimeouts()
-        if data:
-            for serial, url, workerip, workerport in data:
-                reservation_notification(serial, url, workerip, workerport)
+        if (data := database.getReservationTimeouts()):
+            for serial in data:
+                notif.sendDeviceReservationEnd(serial)
+                notif.sendWorkerUnreserve(serial)
 
     def reservation_ending_soon():
-        data = database.getReservationEndingSoon(RESERVATION_EXPIRING_NOTIFY_AT)
-
-        if data:
-            for serial, url in data:
-                send_event(url, serial, "reservation ending soon")
+        if (data := database.getReservationEndingSoon(RESERVATION_EXPIRING_NOTIFY_AT)):
+            for serial in data:
+                notif.sendDeviceReservationEndingSoon(serial)
 
     heartbeat_workers()
     worker_timeouts()
@@ -107,7 +78,6 @@ def main():
     schedule.every(TIMEOUT_POLL).seconds.do(lambda : Thread(target=worker_timeouts, name="worker-timeout").start())
     schedule.every(RESERVATION_POLL).seconds.do(lambda : Thread(target=reservation_timeouts, name="reservation-ending-notifications").start())
     schedule.every(RESERVATION_EXPIRING_POLL).seconds.do(lambda : Thread(target=reservation_ending_soon, name="reservation-expiring").start())
-
 
     while True:
         schedule.run_pending()

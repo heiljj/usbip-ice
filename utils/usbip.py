@@ -48,6 +48,9 @@ def usbip_port(timeout=20):
             if not ip or not bus:
                 continue
             
+            ip = ip.group(1)
+            bus = bus.group(1)
+            
             if ip not in info:
                 info[ip] = []
             

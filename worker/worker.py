@@ -8,6 +8,7 @@ from waitress import serve
 
 from worker.DeviceManager import DeviceManager
 from worker.WorkerDatabase import WorkerDatabase
+from utils.NotificationSender import NotificationSender
 from utils.utils import get_ip
 
 def main():
@@ -46,7 +47,8 @@ def main():
         USBIP_PORT = int(USBIP_PORT)
     
     db = WorkerDatabase(DATABASE_URL, CLIENT_NAME, IP, SERVER_PORT, USBIP_PORT, logger)
-    manager = DeviceManager(db, logger)
+    notif = NotificationSender(DATABASE_URL, logger)
+    manager = DeviceManager(db, notif, logger)
 
     atexit.register(lambda : manager.onExit())
 

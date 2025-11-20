@@ -20,7 +20,7 @@ def main():
     parser.add_argument("amount", help="Amount of devices to connect to")
     parser.add_argument("clientname", help="Name of client")
     parser.add_argument("-f", "-firmware", help="Firmware path to upload to devices")
-    parser.add_argument("-i", "-ip", help="Ip for workers to send events to the client. Not needed if on the same local network.")
+    parser.add_argument("-i", "-ip", help="Ip for workers to send events to the client. Not needed if on the same local network.", default=get_ip())
     parser.add_argument("-p", "-port", help="Port to host subscription server", default="8080")
     parser.add_argument("-c", "-controlserver", help="Control server hostname")
     args = parser.parse_args()
@@ -37,10 +37,6 @@ def main():
         if not curl:
             raise Exception("USBIPICE_CONTROL_SERVER not configured, set to url of the control server")
     
-    if not ip:
-        logger.warning("Using local network ip.")
-        ip = get_ip()
-
     logger = logging.getLogger(__name__)
     logger.setLevel(logging.DEBUG)
     logger.addHandler(logging.StreamHandler(sys.stdout))

@@ -44,28 +44,6 @@ class WorkerDatabase(Database):
         
         return True
     
-    def sendDeviceSubscription(self, deviceserial, contents):
-        try:
-            with psycopg.connect(self.url) as conn:
-                with conn.cursor() as cur:
-                    cur.execute("SELECT * FROM getDeviceCallback(%s::varchar(255))", (deviceserial,))
-                    data = cur.fetchall()
-        except Exception:
-            self.logger.error(f"failed to get device callback for serial {deviceserial}")
-            return False
-
-        if not data:
-            self.logger.debug(f"device subscription update for {deviceserial} but no reservation")
-            return
-        
-        url = data[0][0]
-
-        try:
-            requests.get(url, json=contents)
-        except Exception:
-            self.logger.warning(f"failed to send subscription update for {deviceserial} to {url}")
-        else:
-            self.logger.debug(f"sent subscription update for {deviceserial} to {url}")
 
     def removeDeviceBus(self, deviceserial):
         try:

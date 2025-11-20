@@ -4,9 +4,9 @@ import psycopg
 from waitress import serve
 import logging
 import sys
-import requests
 
 from control.ControlDatabase import ControlDatabase
+from utils.NotificationSender import NotificationSender
 
 def expect_json(parms, fun):
     if request.content_type != "application/json":
@@ -49,6 +49,7 @@ def main():
         raise Exception("Failed to connect to database")
     
     database = ControlDatabase(DATABASE_URL)
+    notif = NotificationSender(DATABASE_URL, logger)
     app = Flask(__name__)
 
     @app.get("/reserve")
@@ -71,26 +72,8 @@ def main():
             return jsonify({})
 
         for row in data:
-            try:
-                res = requests.get(data["subscriptionurl"], json={
-                    "event": "reservation end",
-                    "serial": row["serial"]
-                })
-
-                if res.status_code != 200:
-                    raise Exception
-            except:
-                logger.warning(f"failed to notify {row["subscriptionurl"]} device {row["serial"]} of reservation end")
-            
-            try:
-                res = requests.get(f"http://{row["workerip"]}:{row["workerport"]}/unreserve", json={
-                    "serial": row["serial"]
-                })
-
-                if res.status_code != 200:
-                    raise Exception
-            except:
-                logger.warning(f"failed to notify worker {row["workerip"]} of reservation on {row["serial"]} ending")
+            notif.sendDeviceDisconnect(row["serial"])
+            notif.sendWorkerUnreserve(row["serial"])
         
         return jsonify(list(map(lambda x : x["serial"], data)))
 
@@ -102,26 +85,9 @@ def main():
             return jsonify({})
 
         for row in data:
-            try:
-                res = requests.get(data["subscriptionurl"], json={
-                    "event": "reservation end",
-                    "serial": row["serial"]
-                })
-
-                if res.status_code != 200:
-                    raise Exception
-            except:
-                logger.warning(f"failed to notify {row["subscriptionurl"]} device {row["serial"]} of reservation end")
+            notif.sendDeviceDisconnect(row["serial"])
+            notif.sendWorkerUnreserve(row["serial"])
             
-            try:
-                res = requests.get(f"http://{row["workerip"]}:{row["workerport"]}/unreserve", json={
-                    "serial": row["serial"]
-                })
-
-                if res.status_code != 200:
-                    raise Exception
-            except:
-                logger.warning(f"failed to notify worker {row["workerip"]} of reservation on {row["serial"]} ending")
         
         return jsonify(list(map(lambda x : x["serial"], data)))
     
