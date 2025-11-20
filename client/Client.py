@@ -17,7 +17,7 @@ class Client(ControlAPI):
         self.clientname = clientname
         self.event_server = None
 
-    def startEventServer(self, eventhandlers, ip=get_ip(), port=8080):
+    def startEventServer(self, eventhandlers, ip, port=8080):
         self.event_server = EventServer(self, eventhandlers, self.logger)
         self.event_server.start(self, ip, port)
     

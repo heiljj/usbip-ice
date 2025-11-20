@@ -8,6 +8,7 @@ from client.Client import Client
 from client.FirmwareFlasher import FirmwareFlasher
 from client.EventHandler import DefaultEventHandler
 from client.TimeoutDetector import TimeoutDetector
+from utils.utils import get_ip
 
 
 def main():
@@ -19,6 +20,7 @@ def main():
     parser.add_argument("amount", help="Amount of devices to connect to")
     parser.add_argument("clientname", help="Name of client")
     parser.add_argument("-f", "-firmware", help="Firmware path to upload to devices")
+    parser.add_argument("-i", "-ip", help="Ip for workers to send events to the client. Not needed if on the same local network.")
     parser.add_argument("-p", "-port", help="Port to host subscription server", default="8080")
     parser.add_argument("-c", "-controlserver", help="Control server hostname")
     args = parser.parse_args()
@@ -28,11 +30,16 @@ def main():
     name = args.clientname
     firmware = args.f
     curl = args.c
+    ip = args.i
 
     if not curl:
         curl = os.environ.get("USBIPICE_CONTROL_SERVER")
         if not curl:
             raise Exception("USBIPICE_CONTROL_SERVER not configured, set to url of the control server")
+    
+    if not ip:
+        logger.warning("Using local network ip.")
+        ip = get_ip()
 
     logger = logging.getLogger(__name__)
     logger.setLevel(logging.DEBUG)
@@ -43,7 +50,7 @@ def main():
     flasher = FirmwareFlasher()
 
     logger.info("Starting event service...")
-    client.startEventServer(eh, port=port)
+    client.startEventServer(eh, ip, port=port)
 
     logger.info("Reserving devices...")
     serials = client.reserve(amount)
