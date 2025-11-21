@@ -1,5 +1,5 @@
 [project]
-name = "usbipice"
+name = "usbip-ice"
 version = "0.1"
 dependencies = [
     "Flask",
