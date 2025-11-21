@@ -74,7 +74,7 @@ def main():
             return jsonify({})
 
         for row in data:
-            notif.sendDeviceDisconnect(row["serial"])
+            notif.sendDeviceReservationEnd(row["subscriptionurl"], row["serial"])
             notif.sendWorkerUnreserve(row["serial"])
 
         return jsonify(list(map(lambda x : x["serial"], data)))
@@ -87,7 +87,7 @@ def main():
             return jsonify({})
 
         for row in data:
-            notif.sendDeviceDisconnect(row["serial"])
+            notif.sendDeviceReservationEnd(row["subscriptionurl"], row["serial"])
             notif.sendWorkerUnreserve(row["serial"])
 
         return jsonify(list(map(lambda x : x["serial"], data)))

@@ -56,13 +56,13 @@ def main():
     def worker_timeouts():
         data = database.getWorkerTimeouts(TIMEOUT_DURATION)
         if data:
-            for serial in data:
-                notif.sendDeviceFailure(serial)
+            for serial, url in data:
+                notif.sendDeviceFailure(url, serial)
 
     def reservation_timeouts():
         if (data := database.getReservationTimeouts()):
-            for serial in data:
-                notif.sendDeviceReservationEnd(serial)
+            for serial, url in data:
+                notif.sendDeviceReservationEnd(url, serial)
                 notif.sendWorkerUnreserve(serial)
 
     def reservation_ending_soon():

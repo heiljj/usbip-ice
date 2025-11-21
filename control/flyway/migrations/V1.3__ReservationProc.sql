@@ -148,7 +148,8 @@ $$;
 
 CREATE FUNCTION handleReservationTimeouts()
 RETURNS TABLE (
-    "Device" varchar(255)
+    "Device" varchar(255),
+    "NotificationUrl" varchar(255)
 )
 LANGUAGE plpgsql
 AS
@@ -164,8 +165,9 @@ BEGIN
     WHERE Until < CURRENT_TIMESTAMP;
 
     RETURN QUERY 
-    SELECT res."Device"
-    FROM res;
+    SELECT res."Device", Reservations.NotificationUrl
+    FROM res
+    INNER JOIN Reservations ON res."Device" = Reservations."Device";
 
     DELETE FROM Reservations
     WHERE Device IN (SELECT res."Device" FROM res);
