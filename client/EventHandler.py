@@ -1,3 +1,4 @@
+from __future__ import annotations
 from abc import ABC, abstractmethod
 
 from utils.usbip import usbip_attach
@@ -60,9 +61,8 @@ class DefaultEventHandler(EventHandler):
             self.logger.error(f"failed to bind device {serial} on {worker_ip}:{bus} port {worker_port}")
 
     def handleDisconnect(self, client: Client, serial: str):
-        """Prints an warning and removes the device from the client."""
+        """Prints an warning."""
         self.logger.warning(f"device {serial} disconnected")
-        client.removeSerial(serial)
 
     def handleReservationEndingSoon(self, client: Client, serial: str):
         """Attempts to extend the reservation of the device."""

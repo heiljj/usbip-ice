@@ -26,7 +26,11 @@ class ControlAPI:
         """Manually removes a device. Should be called after reservations end or 
         devices fail. Returns whether it was successful."""
         with self.lock:
-            return self.connection_info.pop(serial) is not None
+            if serial in self.connection_info:
+                del self.connection_info[serial]
+                return True
+
+        return False
 
     def getSerials(self) -> list[str]:
         """Returns tracked serials."""

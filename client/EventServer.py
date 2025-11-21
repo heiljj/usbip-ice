@@ -1,11 +1,15 @@
+from __future__ import annotations
 import threading
 from logging import Logger
+
 
 from waitress.server import create_server
 from flask import Flask, request, Response
 
-from client.Client import Client
-from client.EventHandler import EventHandler
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from client.Client import Client
+    from client.EventHandler import EventHandler
 
 class EventServer:
     """Hosts a server for the workers and heartbeat process to send events to. When an event is received,
