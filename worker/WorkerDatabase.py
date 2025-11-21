@@ -1,9 +1,10 @@
 import psycopg
 import requests
 
-from utils.Database import Database
+from utils.Database import Database, DeviceState
 
 class WorkerDatabase(Database):
+    """Provides access to database operations related to the worker process."""
     def __init__(self, dburl: str, clientname: str, exported_ip: str, exported_server_port: int, exported_usbip_port: int, logger):
         super().__init__(dburl)
         self.clientname = clientname
@@ -19,8 +20,9 @@ class WorkerDatabase(Database):
             logger.critical("Failed to add worker to database")
             raise Exception("Failed to add worker to database")
 
-    
-    def addDevice(self, deviceserial):
+
+    def addDevice(self, deviceserial: str) -> bool:
+        """Add a device to the database."""
         try:
             with psycopg.connect(self.url) as conn:
                 with conn.cursor() as cur:
@@ -29,10 +31,11 @@ class WorkerDatabase(Database):
         except Exception:
             self.logger.error(f"database: failed to add device with serial {deviceserial}")
             return False
-        
+
         return True
-        
-    def updateDeviceBus(self, deviceserial, bus):
+
+    def updateDeviceBus(self, deviceserial: str, bus: str) -> bool:
+        """Update a device's usbip bus."""
         try:
             with psycopg.connect(self.url) as conn:
                 with conn.cursor() as cur:
@@ -41,11 +44,12 @@ class WorkerDatabase(Database):
         except Exception:
             self.logger.error(f"database: failed to update bus to {bus} on device {deviceserial}")
             return False
-        
-        return True
-    
 
-    def removeDeviceBus(self, deviceserial):
+        return True
+
+
+    def removeDeviceBus(self, deviceserial) -> bool:
+        """Removes a device's usbip bus."""
         try:
             with psycopg.connect(self.url) as conn:
                 with conn.cursor() as cur:
@@ -54,10 +58,11 @@ class WorkerDatabase(Database):
         except Exception:
             self.logger.error(f"database: failed to remove bus on device {deviceserial}")
             return False
-        
+
         return True
 
-    def updateDeviceStatus(self, deviceserial, status):
+    def updateDeviceStatus(self, deviceserial: str, status: DeviceState) -> bool:
+        """Updates the status field of a device."""
         try:
             with psycopg.connect(self.url) as conn:
                 with conn.cursor() as cur:
@@ -66,8 +71,9 @@ class WorkerDatabase(Database):
         except Exception:
             self.logger.error(f"database: failed to update device {deviceserial} to status {status}")
             return False
-    
+
     def onExit(self):
+        """Removes the worker and all related devices from the database."""
         try:
             with psycopg.connect(self.url) as conn:
                 with conn.cursor() as cur:
@@ -76,7 +82,7 @@ class WorkerDatabase(Database):
         except Exception:
             self.logger.warning("failed to remove worker from db before exit")
             return
-        
+
         for row in data:
             url, serial = row
 
@@ -84,6 +90,6 @@ class WorkerDatabase(Database):
                 requests.get(url, data={
                     "event": "failure",
                     "serial": serial
-                })
-            except:
+                }, timeout=10)
+            except Exception:
                 self.logger.warning(f"failed to notify {url} of device {serial} failure")

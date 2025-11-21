@@ -1,14 +1,15 @@
 import logging
 import sys
 import os
-import requests
 from threading import Thread
-import schedule
 import time
+
+import requests
+import schedule
 
 from utils.utils import get_env_default
 from utils.NotificationSender import NotificationSender
-from control.HeartbeatDatabase import HeartbeatDatabase 
+from control.HeartbeatDatabase import HeartbeatDatabase
 
 def main():
     logger = logging.getLogger(__name__)
@@ -19,7 +20,7 @@ def main():
     if not DATABASE_URL:
         logger.critical("USBIPICE_DATABASE not configured")
         raise Exception("USBIPICE_DATABASE not configured")
-    
+
     HEARTBEAT_POLL = int(get_env_default("USBIPICE_HEARTBEAT_SECONDS", "15", logger))
 
     TIMEOUT_POLL = int(get_env_default("USBIPICE_TIMEOUT_POLL_SECONDS", "15", logger))
@@ -39,11 +40,11 @@ def main():
 
         if not workers:
             return
-        
+
         for name, ip, port in workers:
             url = f"http://{ip}:{port}/heartbeat"
             try:
-                req = requests.get(url)
+                req = requests.get(url, timeout=10)
 
                 if req.status_code != 200:
                     raise Exception
@@ -51,7 +52,7 @@ def main():
                 logger.error(f"{name} failed heartbeat check")
             else:
                 database.heartbeatWorker(name)
-            
+
     def worker_timeouts():
         data = database.getWorkerTimeouts(TIMEOUT_DURATION)
         if data:
@@ -85,10 +86,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
-
-
-
-
-

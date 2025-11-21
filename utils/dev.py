@@ -1,3 +1,6 @@
+"""
+A collection of functions for interacting with device files.
+"""
 import os
 import re
 import subprocess
@@ -26,14 +29,17 @@ def get_serial(dev):
 
     return False
 
-def format_dev_file(udevinfo):
+def format_dev_file(udevinfo) -> str:
+    """Formats a device file for printing."""
     id_serial = udevinfo.get("ID_SERIAL")
     usb_num = udevinfo.get("ID_USB_INTERFACE_NUM")
     dev_name = udevinfo.get("DEVNAME")
     dev_path = udevinfo.get("DEVPATH")
     return f"[{id_serial} : {usb_num} : {dev_name} : {dev_path}]"
 
-def get_busid(udevinfo):
+def get_busid(udevinfo) -> str:
+    """Returns the bus from a dev file, or None. Obtains the bus from matching
+    /usb1/.../() on DEVPATH."""
     dev_path = udevinfo.get("DEVPATH")
 
     if not dev_path:
@@ -45,29 +51,28 @@ def get_busid(udevinfo):
         return capture.group(1)
     return None
 
-def mount(drive, loc, timeout=10):
+def mount(drive: str, loc: str, timeout: int=10) -> bool:
+    """Mounts drive at location. Returns whether successful."""
     try:
-        p = subprocess.run(["sudo", "mount", drive, loc], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=timeout)
-        if p.returncode != 0:
-            raise Exception
-    except:
+        subprocess.run(["sudo", "mount", drive, loc], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=timeout, check=True)
+    except Exception:
         return False
 
     return True
 
-def umount(loc):
+def umount(loc: str) -> bool:
+    """Unmounts at location. Returns whether successful."""
     try:
-        p = subprocess.run(["sudo", "umount", loc], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        if p.returncode != 0:
-            raise Exception
-    except:
+        subprocess.run(["sudo", "umount", loc], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True)
+    except Exception:
         return False
 
     return True
 
-def send_bootloader(path, timeout=10):
+def send_bootloader(path: str, timeout: int=10):
+    """Connects with picocom using a 1200 baud at path. Returns whether successful."""
     try:
-        p = subprocess.run(["sudo", "picocom", "--baud", "1200", path], timeout=timeout, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        subprocess.run(["sudo", "picocom", "--baud", "1200", path], timeout=timeout, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True)
     except Exception:
         return False
 
@@ -94,9 +99,8 @@ def get_devs():
 
         if serial not in out:
             out[serial] = []
-        
+
         out[serial].append(dev)
-    
     return out
 
 def get_dev_paths():
@@ -115,7 +119,8 @@ class FirmwareUploadFail(Exception):
     def __init__(self, *args):
         super().__init__(*args)
 
-def upload_firmware(partition_path, mount_location, firmware_bytes, mount_timeout=10):
+def upload_firmware(partition_path: str, mount_location: str, firmware_bytes: bytes, mount_timeout=10):
+    """Mounts the partition at location and uploads firmware_bytes to the drive."""
     mounted = mount(partition_path, mount_location, timeout=mount_timeout)
 
     if not mounted:
@@ -135,5 +140,4 @@ def upload_firmware(partition_path, mount_location, firmware_bytes, mount_timeou
     umount(partition_path)
 
     return True
-
 

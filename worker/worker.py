@@ -1,13 +1,15 @@
-from flask import Flask, request, Response
+"""Starts the worker."""
 import logging
 import sys
 import atexit
-import sys
 import os
+
 from waitress import serve
+from flask import Flask, request, Response
 
 from worker.DeviceManager import DeviceManager
 from worker.WorkerDatabase import WorkerDatabase
+
 from utils.NotificationSender import NotificationSender
 from utils.utils import get_ip
 
@@ -39,18 +41,18 @@ def main():
         logger.warning(f"USBIPICE_EXPORTED_SERVER_PORT not configured, defaulting to {SERVER_PORT}")
     else:
         SERVER_PORT = int(SERVER_PORT)
-    
+
     if not USBIP_PORT:
         USBIP_PORT = 3240
         logger.warning(f"USBIPICE_EXPORTED_USBIP_PORT not configured, defaulting to {USBIP_PORT}")
     else:
         USBIP_PORT = int(USBIP_PORT)
-    
+
     db = WorkerDatabase(DATABASE_URL, CLIENT_NAME, IP, SERVER_PORT, USBIP_PORT, logger)
     notif = NotificationSender(DATABASE_URL, logger)
     manager = DeviceManager(db, notif, logger)
 
-    atexit.register(lambda : manager.onExit())
+    atexit.register(manager.onExit)
 
     app = Flask(__name__)
 
@@ -67,7 +69,7 @@ def main():
             json = request.get_json()
         except Exception:
             return Response(status=400)
-        
+
         serial = json.get("serial")
 
         if not serial:
@@ -77,24 +79,24 @@ def main():
             return Response(status=200)
         else:
             return Response(status=400)
-    
+
     @app.get("/unbind")
     def unbind():
         if request.content_type != "application/json":
             return Response(status=400)
-        
+
         try:
             json = request.get_json()
         except Exception:
             return Response(status=400)
-        
+
         serial = json.get("serial")
         # TODO validate
         name = json.get("name")
 
         if not name or not serial:
             return Response(status=400)
-        
+
         manager.unbind(serial)
 
         return Response(status=200)

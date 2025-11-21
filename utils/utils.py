@@ -1,18 +1,26 @@
+"""
+Utility functions that don't fit the other modules.
+"""
+from logging import Logger
 import re
 import subprocess
-from pexpect import fdpexpect
 import os
 
-def get_env_default(var, default, logger):
+from pexpect import fdpexpect
+
+def get_env_default(var, default: str, logger: Logger):
+    """Obtains an environment variable. If its not configured, it instead returns 
+    the default value and logs a warning message."""
     value = os.environ.get(var)
 
     if not value:
         value = default
         logger.warning(f"{var} not configured, defaulting to {default}")
-    
+
     return value
 
-def check_default(devpath):
+def check_default(devpath) -> bool:
+    """Checks for whether a device is running the default firmware."""
     # TODO 
     # Sometimes closing the fd takes a long time (> 10s) on some firmwares,
     # this might create issues. I'm not really sure what the cause is, I added 
@@ -25,11 +33,12 @@ def check_default(devpath):
 
     except Exception:
         return False
-    
+
     return True
 
-def get_ip():
-    res = subprocess.run(["hostname", "-I"], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL).stdout
+def get_ip() -> str:
+    """Obtains local network ip from hostname -I."""
+    res = subprocess.run(["hostname", "-I"], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, check=True).stdout
     return re.search("[0-9]{3}\\.[0-9]{3}\\.[0-9]\\.[0-9]{3}", str(res)).group(0)
 
 

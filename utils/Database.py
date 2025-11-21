@@ -1,7 +1,5 @@
 import psycopg
 from psycopg.types.enum import Enum, EnumInfo, register_enum
-from enum import Enum
-
 class DeviceState(Enum):
     available = 0
     reserved = 1
@@ -11,6 +9,7 @@ class DeviceState(Enum):
     broken = 5
 
 class Database:
+    """Base database class that syncs postgres enums with psycopg"""
     def __init__(self, dburl: str):
         self.url = dburl
 
@@ -21,5 +20,3 @@ class Database:
 
         except Exception:
             raise Exception("Failed to connect to database")
-
-    

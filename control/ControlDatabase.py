@@ -3,11 +3,9 @@ import psycopg
 from utils.Database import Database
 
 class ControlDatabase(Database):
-    def __init__(self, dburl: str):
-        super().__init__(dburl)
-    
-    def reserve(self, amount, subscriptionurl, clientname):
-        """Returns as {serial, ip, usbipport, bus, serverport}"""
+    """Provides methods for accessing the database related to the control process."""
+    def reserve(self, amount: int, subscriptionurl: str, clientname: str) -> dict:
+        """Reserves amount devices for clientname. Returns as {serial, ip, usbipport, bus, serverport}"""
         try:
             with psycopg.connect(self.url) as conn:
                 with conn.cursor() as cur:
@@ -28,9 +26,9 @@ class ControlDatabase(Database):
             })
 
         return values
-    
-    def extend(self, name, serials):
-        """Returns extended serials"""
+
+    def extend(self, name: str, serials: list[str]) -> list[str]:
+        """Extends the reservation time of the serials under the name of the client. Returns the extended serials"""
         try:
             with psycopg.connect(self.url) as conn:
                 with conn.cursor() as cur:
@@ -39,11 +37,11 @@ class ControlDatabase(Database):
                     data = cur.fetchall()
         except Exception:
             return False
-        
+
         return data
-    
-    def extendAll(self, name):
-        """Returns extended serials"""
+
+    def extendAll(self, name: str) -> list[str]:
+        """Extends the reservation time of all serials under the name of the client. Returns the extended serials."""
         try:
             with psycopg.connect(self.url) as conn:
                 with conn.cursor() as cur:
@@ -52,12 +50,12 @@ class ControlDatabase(Database):
                     data = cur.fetchall()
         except Exception:
             return False
-        
+
         return data
-    
-    def end(self, name, serials):
-        """Returns as {serial, subscriptionurl, workerip, workerport}"""
-        """"""
+
+    def end(self, name: str, serials: list[str]):
+        """Ends the reservation of serials under the name of the client.
+        Returns as {serial, subscriptionurl, workerip, workerport}"""
         try:
             with psycopg.connect(self.url) as conn:
                 with conn.cursor() as cur:
@@ -77,9 +75,10 @@ class ControlDatabase(Database):
             })
 
         return values
-    
-    def endAll(self, name):
-        """Returns as {serial, subscriptionurl, workerip, workerport}"""
+
+    def endAll(self, name: str):
+        """Ends all of the reservations under the client name.
+        Returns as {serial, subscriptionurl, workerip, workerport}"""
         try:
             with psycopg.connect(self.url) as conn:
                 with conn.cursor() as cur:

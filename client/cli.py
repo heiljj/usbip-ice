@@ -8,6 +8,7 @@ from client.Client import Client
 from client.FirmwareFlasher import FirmwareFlasher
 from client.EventHandler import DefaultEventHandler
 from client.TimeoutDetector import TimeoutDetector
+
 from utils.utils import get_ip
 
 
@@ -36,11 +37,11 @@ def main():
         curl = os.environ.get("USBIPICE_CONTROL_SERVER")
         if not curl:
             raise Exception("USBIPICE_CONTROL_SERVER not configured, set to url of the control server")
-    
+
     logger = logging.getLogger(__name__)
     logger.setLevel(logging.DEBUG)
     logger.addHandler(logging.StreamHandler(sys.stdout))
-    
+
     client = Client(name, curl, logger)
     eh = [TimeoutDetector(client, logger), DefaultEventHandler(logger)]
     flasher = FirmwareFlasher()
@@ -63,7 +64,7 @@ def main():
 
         logger.info("Session ended.")
         sys.exit(0)
-    
+
     signal.signal(signal.SIGINT, handler)
 
     if not serials:
@@ -74,9 +75,9 @@ def main():
         logger.error(f"Requested {amount} devices but only got {len(serials)}. Ending reservation and exiting.")
         client.end(serials)
         sys.exit(1)
-    
+
     logger.info(f"Successfully reserved {amount} devices.")
-    
+
     if firmware:
         logger.info("Flashing devices...")
         flasher.flash(serials, firmware)
@@ -88,9 +89,9 @@ def main():
             logger.error(f"{len(failed) + len(remaining)} devices failed to flash. Ending reservation and exiting.")
             client.end(serials)
             sys.exit(1)
-        
+
         logger.info("Flashing successful!")
-    
+
     logger.info("Devices are now ready.")
 
 if __name__ == "__main__":
