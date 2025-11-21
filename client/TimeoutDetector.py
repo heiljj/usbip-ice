@@ -93,7 +93,7 @@ class TimeoutDetector(EventHandler):
         while True:
             for _ in range(self.poll):
                 if self.stop_poll_thread:
-                    break
+                    return
                 time.sleep(1)
 
             info = usbip_port()
