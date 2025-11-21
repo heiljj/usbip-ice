@@ -9,38 +9,31 @@ if TYPE_CHECKING:
 
 class EventHandler(ABC):
     """Provides methods to handle events produced by an EventServer."""
-    @abstractmethod
     def handleExport(self, client: Client, serial: str, bus: str, worker_ip: str, worker_port: str):
         """This is called when the host worker exports a reserved device."""
 
-    @abstractmethod
     def handleDisconnect(self, client: Client, serial: str):
         """This is called when the host worker is no longer exporting the device with usbip.
         This can happen normally, for example, during reboot after a firmware change. However, 
         if it's unexpected something probably went wrong."""
 
-    @abstractmethod
     def handleReservationEnd(self, client: Client, serial: str):
         """This is called when a devices reservation ends. The device will be unbound from the workers side -
         there is no way to retain access to a device after the reservation is over."""
 
-    @abstractmethod
     def handleReservationEndingSoon(self, client: Client, serial: str):
         """This is called when a reservation is ending soon. It is intended to be used to extend
         the reservation time."""
 
-    @abstractmethod
     def handleFailure(self, client: Client, serial: str):
         """This is called when a device failure occurs that is unrecoverable, such as the host worker failing
         a heartbeat check. It is not possible to connect back to the device."""
 
-    @abstractmethod
     def handleTimeout(self, client: Client, serial: str, ip: str, port: str):
         """This is called when the client disconnects from the host bus, but the host is not aware and is still
         exporting the device. The client cannot reconnect to the device since it is still being exported. This is used 
         to instruct the host to rebind the device."""
 
-    @abstractmethod
     def exit(self, client):
         """Called when the EventServer is stopped. Can be used to cleanup any created resources."""
 
