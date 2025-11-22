@@ -120,7 +120,8 @@ class FirmwareUploadFail(Exception):
         super().__init__(*args)
 
 def upload_firmware(partition_path: str, mount_location: str, firmware_bytes: bytes, mount_timeout=10):
-    """Mounts the partition at location and uploads firmware_bytes to the drive."""
+    """Mounts the partition at location and uploads firmware_bytes to the drive. Requires sudo 
+    to write to drive.."""
     mounted = mount(partition_path, mount_location, timeout=mount_timeout)
 
     if not mounted:
@@ -141,3 +142,23 @@ def upload_firmware(partition_path: str, mount_location: str, firmware_bytes: by
 
     return True
 
+def upload_firmware_path(partition_path: str, mount_location: str, firmware_path: str, mount_timeout=10):
+    """Mounts the partition at location and copies firmware_path to the drive."""
+    mounted = mount(partition_path, mount_location, timeout=mount_timeout)
+
+    if not mounted:
+        return False
+
+    if os.listdir(mount_location) != ["INDEX.HTM", "INFO_UF2.TXT"]:
+        umount(mount_location)
+        return False
+
+    try:
+        subprocess.run(["sudo", "cp", firmware_path, mount_location], timeout=15, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    except Exception:
+        umount(partition_path)
+        raise FirmwareUploadFail()
+
+    umount(partition_path)
+
+    return True

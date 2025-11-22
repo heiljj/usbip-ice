@@ -34,6 +34,9 @@ class FirmwareFlasher:
     def flash(self, serials: list[str], path: str):
         """Queue serials to be flashed with path firmware. Note that this does not return when the devices 
         are done being flashed, only once the devices have been added into the queue."""
+        if not isinstance(serials, list):
+            serials = [serials]
+
         self.exit = False
         with self.data_lock:
             for serial in serials:
@@ -125,9 +128,6 @@ class FirmwareFlasher:
             if not devname:
                 return
 
-            with open(path, "rb") as f:
-                b = f.read()
-
             mount_path = os.path.join("client_media", serial)
             if not os.path.exists(mount_path):
                 os.mkdir(mount_path)
@@ -137,7 +137,7 @@ class FirmwareFlasher:
                 self.uploading_serials[serial] = dev
 
             try:
-                upload_firmware(devname, mount_path, b, mount_timeout=30)
+                upload_firmware_path(devname, mount_path, path, mount_timeout=30)
                 with self.data_lock:
                     if serial in self.uploading_serials:
                         del self.uploading_serials[serial]
