@@ -107,6 +107,9 @@ class Device:
         """Sets device to BOOTLOADER mode and retriggers dev events so they go through the 
         BOOTLOADER mode handler. This starts the process of flashing to the default firmware."""
         with self.lock:
+            if self.mode == Mode.BOOTLOADER:
+                return
+
             self.logger.info(f"reflashing device {self.serial} to default firmware")
             self.mode = Mode.BOOTLOADER
 
