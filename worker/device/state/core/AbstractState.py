@@ -1,7 +1,7 @@
 from __future__ import annotations
 import threading
 from logging import Logger
-from abc import ABC
+import inspect
 
 from worker.WorkerDatabase import WorkerDatabase
 from utils.NotificationSender import NotificationSender
@@ -24,17 +24,28 @@ class EventMethod:
 
         return self.method(device, *args)
 
-class AbstractState(ABC):
+class AbstractState:
     methods = {}
 
+
     def __init__(self, state: Device):
+        """NOTE: switch CANNOT be called inside __init__(). This will result
+        in the lock for Device being a acquired a second time. If this behavior 
+        is needed, use start() instead."""
         super().__init__()
         self.state = state
         self.switching = False
         self.switching_lock = threading.Lock()
 
+        self.reference_cv = threading.Condition()
+        self.references = 0
+
         name = type(self).__name__
         self.getLogger().debug(f"state is now {name}")
+
+    def start(self):
+        """Called after the AbstractState is initialized, for
+        actions that may result in a switch call."""
 
     def handleAdd(self, dev: pyudev.Device):
         """Called on ADD device event."""
@@ -87,20 +98,18 @@ class AbstractState(ABC):
         >>> class ExampleDevice:  
                 @AbstractState.register("add", "value 1", "value 2")  
                 def addNumbers(self, a, b):  
-                    return a + b  
-        
-        >>> ExampleDevice().handleEvent("add", {  
-            "value 1": 1,  
-            "value 2": 2  
-        })  
-        3
+                    self.getLogger().info(a + b)
+        >>> requests.get("{host}/event", json={
+                "serial": "ABCDEF",
+                "value 1": 1,
+                "value 2": 2
+            })
+        [ABCDEF] 3
         """
         class Reg:
             def __init__(self, fn):
                 self.fn = fn
 
-            # hacky way to get reference to class
-            # type within its own initiation
             def __set_name__(self, owner, name):
                 if owner not in cls.methods:
                     cls.methods[owner] = {}
@@ -110,6 +119,7 @@ class AbstractState(ABC):
 
                 cls.methods[owner][event] = EventMethod(self.fn, args)
                 setattr(owner, name, self.fn)
+
         return Reg
 
     def handleRequest(self, event, json):

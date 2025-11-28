@@ -1,0 +1,60 @@
+"""Makes it possible for a specific device state to be requested from the client."""
+STATE_VALUE_CHECKERS = {}
+STATE_RESERVATION_CONSTRUCTORS = {}
+
+def get_reservation_state_fac(state, event):
+    """Creates a factory for switching states based on a reservation request.
+    Returns False if the event does not contain the correct arguments for the 
+    requested state or the state does not exist."""
+    reservation_type = event.get("type")
+    fn = STATE_RESERVATION_CONSTRUCTORS.get(reservation_type)
+
+    if not fn:
+        return False
+
+    return fn(state, event)
+
+def reservable(name, *args: list[str]):
+    """Makes an AbstractState available by reservation request under name. When reserve is called with
+    this name, the device switches state to Cls(device: device.Device, *json_args), where json_args
+    are obtained from using args as keys into the request dictionary. 
+
+    Ex.
+    >>> @reservable("print device", "message")
+        class ExampleState(device.state.core.AbstractState):
+                def __init__(self, state, msg):
+                    super().__init__()
+                    self.getLogger().info(msg)
+    >>> requests.get("{host}/reserve", json={
+            "serial": "ASDF39TFDFG",
+            "message": "hello!"
+        })
+    [ASDf39TFDFG] state is now ExampleState
+    [ASDf39TFDFG] hello!
+    """
+    def res(cls):
+        if name in STATE_RESERVATION_CONSTRUCTORS:
+            raise Exception(f"reservable {name} is already registered (cls {cls})")
+
+        def check_state(event):
+            for arg in args:
+                if not event.get(arg):
+                    return False
+
+            return True
+
+        STATE_VALUE_CHECKERS[name] = check_state
+
+        def make_state_fac(state, event):
+            json_args = []
+
+            for arg in args:
+                json_args.append(event.get(arg))
+
+            return lambda : cls(state, *json_args)
+
+        STATE_RESERVATION_CONSTRUCTORS[name] = make_state_fac
+
+        return cls
+
+    return res

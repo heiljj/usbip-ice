@@ -1,7 +1,10 @@
-from worker.device.state import AbstractState
-from utils.dev import get_devs, get_busid
+from utils.dev import get_busid, get_devs
 from utils.usbip import usbip_bind, usbip_unbind
 
+from worker.device.state.core import AbstractState
+from worker.device.state.reservable import reservable
+
+@reservable("usbip")
 class UsbipState(AbstractState):
     def __init__(self, state):
         super().__init__(state)
@@ -13,6 +16,17 @@ class UsbipState(AbstractState):
             return
 
         for file in devs:
+            self.handleAdd(file)
+
+    def start(self):
+        devs = get_devs().get(self.getSerial())
+        if not devs:
+            return
+
+        for file in devs:
+            if self.isSwitching():
+                return
+
             self.handleAdd(file)
 
     def handleAdd(self, dev):
@@ -28,12 +42,14 @@ class UsbipState(AbstractState):
 
         if not binded:
             self.getLogger().warning("failed to bind device")
+            return
+
+        self.getLogger().debug(f"now exporting on bus {busid}")
 
         self.getDatabase().updateDeviceBus(self.getSerial(), busid)
         if not self.getNotif().sendDeviceExport(self.getSerial(), busid):
-            self.getLogger().debug("failed to send export event")
+            self.getLogger().debug(f"failed to send export event (bus {busid})")
 
-        self.getLogger().debug(f"now exporting on bus {busid}")
 
     @AbstractState.register("unbind")
     def unbind(self):

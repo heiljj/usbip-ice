@@ -5,12 +5,12 @@ import atexit
 import os
 
 from waitress import serve
-from flask import Flask, request, Response, jsonify
+from flask import Flask, request, Response
 
-from worker.DeviceManager import DeviceManager
-from worker.WorkerDatabase import WorkerDatabase
+from worker.device import DeviceManager
+from worker import WorkerDatabase
 
-from utils.NotificationSender import NotificationSender
+from utils import NotificationSender
 from utils.utils import get_ip
 
 def main():
@@ -60,6 +60,21 @@ def main():
     def heartbeat():
         return Response(status=200)
 
+    @app.get("/reserve")
+    def reserve():
+        if request.content_type != "application/json":
+            return Response(status=400)
+
+        # TODO client
+        try:
+            json = request.get_json()
+        except Exception:
+            return Response(status=400)
+
+        status = 200 if manager.reserve(json) else 400
+
+        return Response(status=status)
+
     @app.get("/unreserve")
     def devices_bus():
         if request.content_type != "application/json":
@@ -80,7 +95,7 @@ def main():
         else:
             return Response(status=400)
 
-    @app.get("/event")
+    @app.get("/request")
     def unbind():
         if request.content_type != "application/json":
             return Response(status=400)
@@ -90,14 +105,9 @@ def main():
         except Exception:
             return Response(status=400)
 
-        serial = json.get("serial")
-        name = json.get("name")
-        event = json.get("event")
+        status = 200 if manager.handleRequest(json) else 400
 
-        if not name or not serial or not event:
-            return Response(status=400)
-
-        return jsonify(manager.handleRequest(serial, event, json))
+        return Response(status=status)
 
     serve(app, port=SERVER_PORT)
 

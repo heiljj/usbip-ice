@@ -16,7 +16,7 @@ class DeviceManager:
         self.logger = logger
         self.notif = notif
         self.database = database
-        self.devs = {}
+        self.devs: dict[str, Device] = {}
 
         self.unbind_on_exit = unbind_on_exit
         self.exiting = False
@@ -59,29 +59,38 @@ class DeviceManager:
 
         self.devs[serial].handleDeviceEvent(action, dev)
 
-    def handleRequest(self, serial, event, json):
+    def handleRequest(self, json: dict):
+        serial = json.get("serial")
+        event = json.get("event")
+        if not serial or not event:
+            return False
+
         dev = self.devs.get(serial)
 
         if not dev:
             self.logger.warning(f"request for {event} on {serial} but device not found")
-            return False
 
         return dev.handleRequest(event, json)
 
-    def reserve(self, serial):
+    def reserve(self, json: dict):
+        serial = json.get("serial")
+
+        if not serial:
+            return False
+
         device = self.devs.get(serial)
 
         if not device:
             self.logger.error(f"device {serial} reserved but does not exist")
 
-        device.reserveUsbip()
+        return device.handleReserve(json)
 
     def unreserve(self, device: pyudev.Device):
         dev = self.devs.get(device)
         if not dev:
             return False
 
-        dev.handleUnreserve()
+        return dev.handleUnreserve()
 
     def onExit(self):
         """Callback for cleanup on program exit"""

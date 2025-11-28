@@ -1,4 +1,4 @@
-from worker.device.state import AbstractState
+from worker.device.state.core import AbstractState
 
 class BrokenState(AbstractState):
     def __init__(self, state):

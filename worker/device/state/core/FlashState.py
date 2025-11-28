@@ -1,8 +1,9 @@
 import os
 
-from worker.device.state import AbstractState
-from worker.device.state import BrokenState
-from utils.dev import send_bootloader, upload_firmware_path
+from worker.device.state.core import AbstractState
+from worker.device.state.core import BrokenState
+
+from utils.dev import send_bootloader, upload_firmware_path, get_devs
 
 class FlashState(AbstractState):
     def __init__(self, state, mount_location, firmware_path, next_state_factory):
@@ -11,7 +12,13 @@ class FlashState(AbstractState):
         self.firmware_path = firmware_path
         self.next_state_factory = next_state_factory
 
-        self.exiting = False
+        devs = get_devs().get(self.getSerial())
+
+        if not devs:
+            return
+
+        for file in devs:
+            self.handleAdd(file)
 
     def handleAdd(self, dev):
         devname = dev.get("DEVNAME")

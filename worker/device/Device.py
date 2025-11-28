@@ -5,14 +5,14 @@ from logging import Logger, LoggerAdapter
 import threading
 
 from worker.WorkerDatabase import WorkerDatabase
-from worker.device.state import FlashState
-from worker.device.state import TestState
-from worker.device.state import UsbipState
-from utils.NotificationSender import NotificationSender
+from worker.device.state.core import FlashState
+from worker.device.state.core import TestState
+from worker.device import DeviceEventSender
+from worker.device.state.reservable import get_reservation_state_fac
 
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
-    from worker.device.state import AbstractState
+    from worker.device.state.core import AbstractState
 
 DEFAULT_FIRMWARE_PATH = "worker/firmware/build/default_firmware.uf2"
 WORKER_MEDIA = "worker_media"
@@ -24,7 +24,7 @@ class DeviceLogger(LoggerAdapter):
         return f"[{self.extra["serial"]}] {msg}", kwargs
 
 class Device:
-    def __init__(self, serial: str, logger: Logger, database: WorkerDatabase, notif: NotificationSender):
+    def __init__(self, serial: str, logger: Logger, database: WorkerDatabase, notif: DeviceEventSender):
         self.serial = serial
         self.logger = DeviceLogger(logger, serial)
         self.database = database
@@ -55,9 +55,6 @@ class Device:
         self.getDatabase().updateDeviceStatus(self.getSerial(), "flashing_default")
         self.switch(lambda : FlashState(self, self.mount_path, self.firmware_path, lambda : TestState(self)))
 
-    def reserveUsbip(self):
-        self.switch(lambda : UsbipState(self))
-
     def handleDeviceEvent(self, action, dev):
         with self.device_lock:
             if not self.device:
@@ -75,8 +72,18 @@ class Device:
 
         self.getLogger().warning(f"unhandled device action: {action}")
 
+    def handleReserve(self, json):
+        fn = get_reservation_state_fac(self, json)
+
+        if not fn:
+            return False
+
+        self.switch(fn)
+        return True
+
     def handleUnreserve(self):
         self.__flashDefault()
+        return True
 
     def handleRequest(self, event, json):
         return self.device.handleRequest(event, json)
@@ -90,7 +97,10 @@ class Device:
         with self.device_lock:
             if self.device:
                 self.device.handleExit()
-            self.device = state_factory()
+            device = state_factory()
+            self.device = device
+
+        device.start()
 
     def getSerial(self) -> str:
         return self.serial
@@ -101,5 +111,5 @@ class Device:
     def getDatabase(self) -> WorkerDatabase:
         return self.database
 
-    def getNotif(self) -> NotificationSender:
+    def getNotif(self) -> DeviceEventSender:
         return self.notif

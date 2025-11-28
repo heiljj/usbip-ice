@@ -3,6 +3,7 @@ import psycopg
 import logging
 import sys
 
+import requests
 from flask import Flask, request, Response, jsonify
 from waitress import serve
 
@@ -54,9 +55,31 @@ def main():
     notif = NotificationSender(DATABASE_URL, logger)
     app = Flask(__name__)
 
+    # TODO
     @app.get("/reserve")
     def make_reservations():
-        return jsonify(expect_json(["amount", "url", "name"], database.reserve))
+        data = expect_json(["amount", "url", "name"], database.reserve)
+        if not data:
+            return Response(status=400)
+        
+        # TODO 
+        
+        for row in data:
+            ip = row["ip"]
+            port = row["serverport"]
+            serial = row["serial"]
+
+            try:
+                res = requests.get(f"http://{ip}:{port}/reserve", json={
+                    "serial": serial
+                }, timeout=5)
+
+                if res.status_code != 200:
+                    raise Exception
+            except Exception:
+                pass
+
+        return jsonify(data)
 
     @app.get("/extend")
     def extend():
