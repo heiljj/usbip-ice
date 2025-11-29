@@ -4,12 +4,9 @@ import logging
 import sys
 import signal
 
-from client.Client import Client
-from utils.FirmwareFlasher import FirmwareFlasher
-from client.lib.AbstractEventHandler import DefaultEventHandler
-from client.drivers.usbip.UsbipHandler import TimeoutDetector
-
+from client.drivers.usbip import UsbipClient
 from utils.utils import get_ip
+from utils import FirmwareFlasher
 
 
 def main():
@@ -42,12 +39,12 @@ def main():
     logger.setLevel(logging.DEBUG)
     logger.addHandler(logging.StreamHandler(sys.stdout))
 
-    client = Client(name, curl, logger)
-    eh = [TimeoutDetector(client, logger), DefaultEventHandler(logger)]
+    client = UsbipClient(curl, name, logger)
+
     flasher = FirmwareFlasher()
 
     logger.info("Starting event service...")
-    client.startEventServer(eh, ip, port=port)
+    client.start(ip, port)
 
     logger.info("Reserving devices...")
     serials = client.reserve(amount)
@@ -57,7 +54,7 @@ def main():
         client.end(serials)
 
         logger.info("Stopping service...")
-        client.stopEventServer()
+        client.stop()
 
         logger.info("Stopping flasher...")
         flasher.stopFlasher()
@@ -82,11 +79,13 @@ def main():
         logger.info("Flashing devices...")
         flasher.flash(serials, firmware)
         flasher.startFlasher()
-        remaining, failed = flasher.waitUntilFlashingFinished(timeout=120)
+
+        failed = flasher.waitUntilFlashingFinished(timeout=120)
+
         flasher.stopFlasher()
 
-        if remaining or failed:
-            logger.error(f"{len(failed) + len(remaining)} devices failed to flash. Ending reservation and exiting.")
+        if failed:
+            logger.error(f"{len(failed)} devices failed to flash. Ending reservation and exiting.")
             client.end(serials)
             sys.exit(1)
 
