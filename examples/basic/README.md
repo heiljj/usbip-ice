@@ -1,2 +1,2 @@
 # Reading from default firmware
-This is intended to be used as the first example. It starts an event server and reserves a device. The device is connected to using the default EventHandlers. The dev file of the device is located using the utility tools, then the output of the default firmware is read using the pexpect package. Afterwards, the device is unreserved.
+This is intended to be used as the first example. It uses the UsbipClient to connect to a device, finds the device's port, then reads the output of the default firmware. Afterwards, the device is unreserved.

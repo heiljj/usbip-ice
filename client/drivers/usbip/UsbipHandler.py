@@ -111,6 +111,7 @@ class UsbipHandler(BaseUsbipEventHandler):
 
             for serial, dev in self.devices.items():
                 if dev.hadTimeout():
+                    self.logger.warning(f"device {serial} timed out")
                     dev.deviceEvent()
                     self.api.unbind(serial)
 

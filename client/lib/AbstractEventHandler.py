@@ -51,6 +51,8 @@ class AbstractEventHandler:
 
     def handleEvent(self, event):
         search = [type(self)]
+        attr = None
+
 
         while search:
             type_ = search.pop(0)

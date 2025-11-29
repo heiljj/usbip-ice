@@ -6,9 +6,7 @@ import time
 import atexit
 from pexpect import fdpexpect
 
-from client.Client import Client
-from client.lib.AbstractEventHandler import DefaultEventHandler
-from client.drivers.usbip.UsbipHandler import TimeoutDetector
+from client.drivers.usbip import UsbipClient
 
 from utils.dev import get_dev_paths
 from utils.utils import get_ip
@@ -30,43 +28,36 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 logger.addHandler(logging.StreamHandler(sys.stdout))
 
-client = Client(CLIENT_NAME, CONTROL_SERVER, logger)
+client = UsbipClient(CONTROL_SERVER, CLIENT_NAME, logger)
+client.start(CLIENT_IP, CLIENT_PORT)
 
-# EventHandlers receive events starting at the 0 index.
-event_handlers = []
-
-# This EventHandler connects with usbip when devices are available.
-# It also provides some logging capabilities.
-# There are few situations where it should not be used.
-event_handlers.append(DefaultEventHandler(logger))
-
-# This EventHandler checks for a broken usbip state that is not detectable
-# on the server. It enables the timeout event. There are few situations
-# where it should not be used.
-event_handlers.append(TimeoutDetector(client, logger))
-
-client.startEventServer(event_handlers, CLIENT_IP, CLIENT_PORT)
-
+# Device serials serve as a device's unique ID
 serials = client.reserve(1)
 
 # End the reservation on exit. If we don't,
 # the devices will be inaccessible for the remainder
 # of the reservation (~1h).
-atexit.register(lambda : client.end(serials))
+# client.stop() also does this, but it won't
+# happen if an exception occurs beforehand.
+atexit.register(lambda : client.endAll)
 
 if not serials:
     raise Exception("Failed to reserve a device.")
 
 # Serial of the reserved device
 serial = serials[0]
+logger.info(f"Reserved device {serial}!")
+
 
 # Give some time for usbip connections to happen.
-# This should be done by making an EventHandler instead,
+# This should be detected using EventHandlers or pyudev,
 # but as a first example this is much simpler.
 time.sleep(5)
 
 # Returns a dict mapping pico2ice device serials to lists
-# of their device files.
+# of their device files. This contains information
+# about all of the devices connected to the system,
+# not just those from this client.
 device_paths = get_dev_paths()
 
 if serial not in device_paths:
@@ -84,4 +75,5 @@ p.close()
 
 # Stops EventServer threads and sends exit signal
 # to EventHandlers so they can cleanup
-client.stopEventServer()
+# An exit won't happen unless until this is called
+client.stop()

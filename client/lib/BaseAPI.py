@@ -42,7 +42,7 @@ class BaseAPI:
 
     def request(self, url: str, endpoint: str, json: dict) -> dict:
         try:
-            res = requests.get(f"{url}/{endpoint}", json=json, timeout=10)
+            res = requests.get(f"{url}/{endpoint}", json=json, timeout=20)
 
             if res.status_code != 200:
                 self.logger.error(f"failed to GET /{endpoint}")

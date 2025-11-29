@@ -145,3 +145,5 @@ class DeviceManager:
         """Callback for cleanup on program exit"""
         for dev in self.devs.values():
             dev.handleExit()
+
+        self.database.onExit()
