@@ -5,9 +5,9 @@ __pycache__
 client_media
 worker_media
 
-worker/firmware/build
-worker/firmware/pico-ice-sdk
-worker/firmware/pico-sdk
+src/usbipice/worker/firmware/build
+src/usbipice/worker/firmware/pico-ice-sdk
+src/usbipice/worker/firmware/pico-sdk
 
 examples/pulse_count_usbip/firmware/pico-ice-sdk
 examples/pulse_count_usbip/firmware/pico-sdk

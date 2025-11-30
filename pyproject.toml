@@ -15,12 +15,15 @@ dependencies = [
 requires = ["setuptools >= 77.0.3"]
 build-backend = "setuptools.build_meta"
 
-[project.scripts]
-worker = "worker:worker.main"
-control = "control:server.main"
-usbipconnect = "client:cli.main"
-heartbeat = "control:heartbeat.main"
-
 [tool.setuptools]
-packages = ["client", "worker", "control", "utils"]
+packages = ["usbipice"]
+package-dir = {"" = "src"}
+
+[project.scripts]
+worker = "usbipice:worker.main"
+control = "usbipice:control.main"
+heartbeat = "usbipice:heartbeat.main"
+usbipconnect = "usbipice:usbipconnect.main"
+
+
 
