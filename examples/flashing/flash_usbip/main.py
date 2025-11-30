@@ -3,11 +3,9 @@ import sys
 import os
 import signal
 
-from client.Client import Client
-from client.lib.AbstractEventHandler import DefaultEventHandler
-from client.drivers.usbip.UsbipHandler import TimeoutDetector
-from utils.FirmwareFlasher import FirmwareFlasher
+from client.drivers.usbip import UsbipClient
 
+from utils.FirmwareFlasher import FirmwareFlasher
 from utils.utils import get_ip
 
 #################################################
@@ -15,7 +13,7 @@ CLIENT_NAME = "read default example"
 CLIENT_IP = get_ip() # local network ip - must be accessible by control/worker servers
 CLIENT_PORT = "8080"
 CONTROL_SERVER = ""
-FIRMWARE_PATH = ""
+FIRMWARE_PATH = "/home/heiljj/ehw/firmware/rp2_hello_world.uf2"
 
 if not CONTROL_SERVER:
     CONTROL_SERVER = os.environ.get("USBIPICE_CONTROL_SERVER")
@@ -28,10 +26,8 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 logger.addHandler(logging.StreamHandler(sys.stdout))
 
-client = Client(CLIENT_NAME, CONTROL_SERVER, logger)
-
-event_handlers = [DefaultEventHandler(logger), TimeoutDetector(client, logger)]
-client.startEventServer(event_handlers, CLIENT_IP, CLIENT_PORT)
+client = UsbipClient(CONTROL_SERVER, CLIENT_NAME, logger)
+client.start(CLIENT_IP, CLIENT_PORT)
 
 serials = client.reserve(1)
 
@@ -40,7 +36,7 @@ flasher = FirmwareFlasher()
 
 def handler(sig, frame):
     print("Exiting...")
-    client.endAll()
+    client.stop()
     # The flasher creates separate threads
     # that need to be stopped for a graceful
     # exit

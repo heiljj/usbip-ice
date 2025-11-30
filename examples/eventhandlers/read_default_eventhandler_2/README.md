@@ -1,2 +1,0 @@
-# Reserve new device on reservation end
-This example contains the same functionality as read_default_eventhandler_1, but also reserves new devices when a reservation ends. It also demonstrates that devices are no longer available after reservations have ended.
