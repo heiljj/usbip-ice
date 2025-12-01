@@ -16,7 +16,8 @@ def get_reservation_state_fac(state, kind, args):
 def reservable(name, *args: list[str]):
     """Makes an AbstractState available by reservation request under name. When reserve is called with
     this name, the device switches state to Cls(device: device.Device, *json_args), where json_args
-    are obtained from using args as keys into the request dictionary. 
+    are obtained from using args as keys into the request dictionary. The class should be included in 
+    __init__.py to ensure the decorator is run.
 
     Ex.
     >>> @reservable("print device", "message")
