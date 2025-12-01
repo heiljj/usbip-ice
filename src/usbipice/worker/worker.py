@@ -119,6 +119,9 @@ def main():
 
                 json[key] = items[0]
 
+            if "files" in json:
+                return Response(status=400)
+
             files = {}
 
             try:
@@ -138,8 +141,7 @@ def main():
 
                 return Response(400)
 
-            for key, file in files.items():
-                json[key] = file
+            json["files"] = files
 
             value = manager.handleRequest(json)
 

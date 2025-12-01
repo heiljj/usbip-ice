@@ -1,13 +1,10 @@
-import os
-
 from usbipice.worker.device.state.core import AbstractState, BrokenState
 
 from usbipice.utils.dev import send_bootloader, upload_firmware_path, get_devs
 
 class FlashState(AbstractState):
-    def __init__(self, state, mount_location, firmware_path, next_state_factory):
+    def __init__(self, state, firmware_path, next_state_factory):
         super().__init__(state)
-        self.mount_location = mount_location
         self.firmware_path = firmware_path
         self.next_state_factory = next_state_factory
 
@@ -37,11 +34,7 @@ class FlashState(AbstractState):
         if dev.get("DEVTYPE") == "partition":
             self.getLogger().debug("found bootloader candidate")
 
-            path = os.path.join(self.mount_location, self.getSerial())
-            if not os.path.isdir(path):
-                os.mkdir(path)
-
-            uploaded = upload_firmware_path(devname, path, self.firmware_path)
+            uploaded = upload_firmware_path(devname, self.getState().getMountPath(), self.firmware_path)
 
             if not uploaded:
                 self.getLogger().error("failed to upload firmware")

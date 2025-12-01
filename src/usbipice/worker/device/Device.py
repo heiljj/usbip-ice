@@ -41,8 +41,7 @@ class Device:
 
     def __flashDefault(self):
         self.getDatabase().updateDeviceStatus(self.getSerial(), "flashing_default")
-        mount_path = str(self.path.joinpath("mount"))
-        self.switch(lambda : FlashState(self, mount_path, DEFAULT_FIRMWARE_PATH, lambda : TestState(self)))
+        self.switch(lambda : FlashState(self, DEFAULT_FIRMWARE_PATH, lambda : TestState(self)))
 
     def handleDeviceEvent(self, action, dev):
         with self.device_lock:
@@ -132,3 +131,9 @@ class Device:
 
     def getPath(self) -> Path:
         return self.path
+
+    def getMountPath(self) -> str:
+        return str(self.path.joinpath("mount"))
+
+    def getMediaPath(self) -> Path:
+        return self.path.joinpath("media")

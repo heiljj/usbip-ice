@@ -121,8 +121,8 @@ class AbstractState:
         using the handleEvent function with event=event. These arguments specify which json 
         key should be used to get the value of that positional argument when handleEvent is called.
         The values passed in from the client are typechecked. Currently, only type and list[type]
-        are supported. For files from multipart forums, tempfile._TemporaryFileWrapper is used.
-        After the function returns, the temp file is deleted. If the file is needed later, it
+        are supported. For files from multipart forums, specify 'files'. This is received as a 
+        dict[str, tempfile._TemporaryFileWrapper]. After the function returns, the temp file is deleted. If the file is needed later, it
         should be saved under self.getPath().
         Parameters without types are treated as Any. Returning None sends a 400 status
         to the client, otherwise Flask.jsonify is sent. 
