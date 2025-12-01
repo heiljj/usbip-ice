@@ -25,7 +25,7 @@ class DeviceLogger(LoggerAdapter):
 class Device:
     def __init__(self, serial: str, logger: Logger, database: WorkerDatabase, notif: DeviceEventSender, manager: DeviceManager):
         self.serial = serial
-        self.logger = DeviceLogger(logger, serial)
+        self.logger = logger
         self.database = database
         self.notif = notif
         self.device: AbstractState = None
@@ -58,7 +58,8 @@ class Device:
             device.handleRemove(dev)
             return
 
-        self.getLogger().warning(f"unhandled device action: {action}")
+        # TODO logger adapter?
+        self.getLogger().warning(f"[{self.serial}] unhandled device action: {action}")
 
     def enableKernelAdd(self):
         self.getManager().subscribeKernelAdd(self)

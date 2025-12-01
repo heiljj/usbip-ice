@@ -1,6 +1,6 @@
 from __future__ import annotations
 import threading
-from logging import Logger
+from logging import Logger, LoggerAdapter
 
 from usbipice.worker import WorkerDatabase
 from usbipice.utils import DeviceEventSender, typecheck
@@ -26,6 +26,15 @@ class EventMethod:
 
         return self.method(device, *args)
 
+class StateLogger(LoggerAdapter):
+    def __init__(self, logger: Logger, serial: str, state: str, extra = None):
+        self.serial = serial
+        self.state = state
+        super().__init__(logger, extra={})
+
+    def process(self, msg, kwargs):
+        return f"[{self.state}@{self.serial}] {msg}", kwargs
+
 class AbstractState:
     methods = {}
 
@@ -33,15 +42,17 @@ class AbstractState:
         """NOTE: switch CANNOT be called inside __init__(). This will result
         in the lock for Device being a acquired a second time. If this behavior 
         is needed, use start() instead."""
-        super().__init__()
         self.state = state
+
+        name = type(self).__name__
+        self.logger = StateLogger(self.state.getLogger(), self.getSerial(), name)
+
         self.switching = False
         self.switching_lock = threading.Lock()
 
         self.reference_cv = threading.Condition()
         self.references = 0
 
-        name = type(self).__name__
         self.getLogger().debug(f"state is now {name}")
 
     def start(self):
@@ -90,7 +101,7 @@ class AbstractState:
         return self.getState().getSerial()
 
     def getLogger(self) -> Logger:
-        return self.getState().getLogger()
+        return self.logger
 
     def getDatabase(self) -> WorkerDatabase:
         return self.getState().getDatabase()
