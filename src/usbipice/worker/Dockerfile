@@ -24,10 +24,10 @@ RUN cp picocom /usr/bin
 WORKDIR /usr/local/app
 
 EXPOSE 8080
-
-# docker run --rm -t -i --privileged -v /dev:/dev -v /lib/modules:/lib/modules --network=host -it usbipice bash
+# NOTE: docker is being used to make deployments easier. it is in no way providing isolation
+# docker run --rm -t -i --privileged -v /dev:/dev -v /lib/modules:/lib/modules -v /run/udev:/run/udev:ro -v /tmp:/tmp --network=host -it usbipice bash
 # -v /dev:/dev for dev files
 # -v /lib/modules:/lib/modules for usbip 
-
+# -v /tmp:/tmp for storing client files
 # -v /run/udev:/run/udev:ro to provide additional dev attributes (like ID_SERIAL)
 # from https://stackoverflow.com/questions/41753218/udevadm-does-not-show-all-attributes-inside-a-docker-container
