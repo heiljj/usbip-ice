@@ -6,7 +6,9 @@ from usbipice.client.lib import EventServer, register
 from usbipice.client.utils import DefaultEventHandler
 
 class PulseCountClient(PulseCountAPI):
-    """NOTE: this implementation is intended only for single threaded use."""
+    # TODO threadsafe evals
+    """NOTE: this implementation is intended only for single threaded use.
+        Evaluates bitstreams for pulse counts. Evaluation is done on each device."""
     def __init__(self, url, client_name, logger):
         super().__init__(url, client_name, logger)
 
@@ -24,20 +26,25 @@ class PulseCountClient(PulseCountAPI):
         self.remaining_serials = set()
 
     def reserve(self, amount):
+        """Reserves amount of devices."""
         if not self.running:
             raise Exception("Event server not started")
         return super().reserve(amount, self.server.getUrl())
 
     def start(self, client_ip: str, client_port: str):
+        """Starts the event server. This should be done before reserving devices."""
         self.server.start(client_ip, client_port, self.eh)
         self.running = True
 
     def stop(self):
+        """Stops the event server and ends reservations. This should be done before the program exits,
+        even if it is the result of an exception. If the reservations are not ended, they will remain
+        unavailable for the duration of the reservation (~1h)."""
         self.server.stop()
         self.running = False
         self.endAll()
 
-    def addResult(self, serial, value):
+    def _addResult(self, serial, value):
         with self.cv:
             self.results[serial] = value
             self.remaining_serials.remove(serial)
@@ -46,6 +53,7 @@ class PulseCountClient(PulseCountAPI):
                 self.cv.notify_all()
 
     def evaluate(self, bitstream_paths: list[str]) -> dict[dict[str, int]]:
+        "Evaluates a list of bitstream paths on each device. Returns as {serial -> {path -> pulses}}."
         self.uuid_map = {}
         self.results = {}
         self.remaining_serials = set()
@@ -77,4 +85,4 @@ class ResultHandler(PulseCountEventHandler):
 
     @register("results", "serial", "results")
     def results(self, serial: str, results: dict[str, int]):
-        self.client.addResult(serial, results)
+        self.client._addResult(serial, results)
