@@ -1,18 +1,16 @@
 import subprocess
 import os
 
-# this is probably be the worst
-# thing i've written
+# NOTE: this is just for testing and should not be used
 
-# swarm doesn't allow privileged mode
-# eventually this needs to be moved to kubernetes
-# for now this is easier
+SSH_HOSTS = os.environ.get("USBIPICE_HOSTS")
 
-SSH_HOSTS = []
+if SSH_HOSTS:
+    SSH_HOSTS = list(SSH_HOSTS.split(","))
 
 IMAGE_REPO = os.environ.get("DOCKER_IMAGE_REPO")
 USBIPICE_DATABASE = os.environ.get("USBIPICE_DATABASE")
-if not IMAGE_REPO or not USBIPICE_DATABASE:
+if not IMAGE_REPO or not USBIPICE_DATABASE or not SSH_HOSTS:
     raise Exception("Configuration error")
 
 hoststr = ",".join(SSH_HOSTS)
@@ -20,10 +18,11 @@ hoststr = ",".join(SSH_HOSTS)
 # verify we can connect
 subprocess.run(["pdsh", "-w", hoststr, "echo", "test"], check=True)
 
+# NOTE: we remove ALL containers here
 subprocess.run(["pdsh", "-w", hoststr, "eval", "docker stop $(docker ps -a -q)"])
 subprocess.run(["pdsh", "-w", hoststr, "eval", "docker rm $(docker ps -a -q)"])
 
-# subprocess.run(["pdsh", "-w", hoststr, "docker", "pull", IMAGE_REPO])
+subprocess.run(["pdsh", "-w", hoststr, "docker", "pull", IMAGE_REPO])
 
 for host in SSH_HOSTS:
     subprocess.run(["pdsh", "-w", host, "docker", "run",

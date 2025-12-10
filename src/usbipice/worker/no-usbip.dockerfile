@@ -1,10 +1,12 @@
-# TODO must match host image
+# NOTE: This image does not contain usbip support.
+# If a client reserves a usbip device, this will crash.
+# This image is intended to make testing more convenient, 
+# as it does not need to adhere to the usbip requirements.
+
 FROM ubuntu:noble-20240423
 WORKDIR /usr/local/app
 
 RUN apt-get update && apt-get install -y git python3 python3-pip python3-venv sudo make udev
-# TODO must match host kernel 
-RUN apt-get install -y linux-tools-6.14.0-36-generic
 
 COPY ./ /usr/local/app/
 
