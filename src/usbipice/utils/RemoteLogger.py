@@ -16,7 +16,7 @@ class RemoteLogger:
         self.backlog = []
         self.backlog_lock = threading.Lock()
 
-        self.thread = threading.Thread(target=self._send)
+        self.thread = threading.Thread(target=self._send, name="remote-logger", daemon=True)
         self.thread.start()
 
     def getLogger(self) -> logging.Logger:

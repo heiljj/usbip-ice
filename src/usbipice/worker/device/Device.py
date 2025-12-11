@@ -41,7 +41,7 @@ class Device:
 
     def __flashDefault(self):
         self.getDatabase().updateDeviceStatus(self.getSerial(), "flashing_default")
-        self.switch(lambda : FlashState(self, self.getConfig().getDefaultFirmwarePath(), lambda : TestState(self)))
+        self.switch(lambda : FlashState(self, self.getConfig().getDefaultFirmwarePath(), lambda : TestState(self), timeout=60))
 
     def handleDeviceEvent(self, action, dev):
         with self.device_lock:

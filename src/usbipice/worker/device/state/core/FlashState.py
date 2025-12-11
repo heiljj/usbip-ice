@@ -1,12 +1,21 @@
+import threading
+
 from usbipice.worker.device.state.core import AbstractState, BrokenState
 
 from usbipice.utils.dev import send_bootloader, upload_firmware_path, get_devs
 
 class FlashState(AbstractState):
-    def __init__(self, state, firmware_path, next_state_factory):
+    def __init__(self, state, firmware_path, next_state_factory, timeout=None):
         super().__init__(state)
         self.firmware_path = firmware_path
         self.next_state_factory = next_state_factory
+        self.timer = None
+
+        if timeout:
+            self.timer = threading.Timer(timeout, lambda : self.switch(lambda : BrokenState(self.getDevice())))
+            self.timer.daemon = True
+            self.timer.name = f"{self.getSerial()}-flash-timeout"
+            self.timer.start()
 
     def start(self):
         devs = get_devs().get(self.getSerial())
