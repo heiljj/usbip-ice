@@ -27,7 +27,7 @@ class HeartbeatDatabase(ControlDatabase):
 
     def getWorkerTimeouts(self, timeout_dur: int) -> list:
         """Times out the workers that have not had a heartbeat in timeout_dur. Returns the 
-        timed out workers as a list of (serial, notificationurl)."""
+        timed out workers as a list of (serial, notificationurl, worker)."""
         try:
             with psycopg.connect(self.url) as conn:
                 with conn.cursor() as cur:

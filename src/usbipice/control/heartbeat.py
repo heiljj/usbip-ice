@@ -63,18 +63,21 @@ def main():
     def worker_timeouts():
         data = database.getWorkerTimeouts(TIMEOUT_DURATION)
         if data:
-            for serial, url in data:
+            for serial, url, worker in data:
                 notif.sendDeviceFailure(serial, url=url)
+                logger.info(f"Worker {worker} failed; sent device failure for {serial}")
 
     def reservation_timeouts():
         if (data := database.getReservationTimeouts()):
             for serial, url in data:
                 database.sendWorkerUnreserve(serial)
+                logger.info(f"Sent unreserve command for {serial}")
 
     def reservation_ending_soon():
         if (data := database.getReservationEndingSoon(RESERVATION_EXPIRING_NOTIFY_AT)):
             for serial in data:
                 notif.sendDeviceReservationEndingSoon(serial)
+                logger.info(f"Sent ending soon notification for {serial}")
 
     heartbeat_workers()
     worker_timeouts()
