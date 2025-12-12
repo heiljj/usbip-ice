@@ -1,9 +1,13 @@
+from __future__ import annotations
+import typing
 from logging import Logger
 
 import psycopg
 import requests
 
-from usbipice.worker import Config
+if typing.TYPE_CHECKING:
+    from usbipice.worker import Config
+
 from usbipice.utils import Database
 
 class DeviceEventSender(Database):

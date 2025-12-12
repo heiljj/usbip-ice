@@ -3,9 +3,7 @@ import logging
 import sys
 import argparse
 import threading
-import json
 
-from waitress import serve
 from flask import Flask, request, Response
 from flask_socketio import SocketIO
 
