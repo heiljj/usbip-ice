@@ -1,4 +1,4 @@
-from usbipice.client.lib import AbstractEventHandler, register, BaseAPI
+from usbipice.client.lib import AbstractEventHandler, register, BaseClient
 
 class BaseUsbipEventHandler(AbstractEventHandler):
     @register("export", "serial", "busid", "server_ip", "usbip_port")
@@ -13,12 +13,12 @@ class BaseUsbipEventHandler(AbstractEventHandler):
         when a device is disconnected and then reconnected, the client receives 
         the export event before the disconnect one."""
 
-class UsbipAPI(BaseAPI):
-    def reserve(self, amount, subscription_url):
-        return super().reserve(amount, subscription_url, "usbip", {})
+class UsbipBaseClient(BaseClient):
+    def reserve(self, amount):
+        return super().reserve(amount, "usbip", {})
 
     def unbind(self, serial):
-        return self.requestWorker(serial, "/request", {
+        return self.requestWorker(serial, {
             "serial": serial,
             "event": "unbind"
         })

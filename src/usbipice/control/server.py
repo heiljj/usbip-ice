@@ -63,7 +63,7 @@ def main():
 
     @app.get("/reserve")
     def make_reservations():
-        args = argify_json(["amount", "url", "name", "kind", "args"])
+        args = argify_json(["amount", "name", "kind", "args"])
         if not args:
             return Response(status=400)
 

@@ -71,13 +71,12 @@ class BaseAPI:
         url = f"http://{conn_info.ip}:{conn_info.server_port}"
         return self.request(url, endpoint, json, files=files)
 
-    def reserve(self, amount: int, subscription_url: str, kind: str, args: dict) -> dict:
+    def reserve(self, amount: int, kind: str, args: dict) -> dict:
         """Reserves amount devices with subscription_url as a event server.
         Returns successful reservations as a dict of serial -> bus"""
         json = {
             "amount": amount,
             "name": self.name,
-            "url": subscription_url,
             "kind": kind,
             "args": args
         }

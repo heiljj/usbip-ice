@@ -1,5 +1,5 @@
 import uuid
-from usbipice.client.lib import AbstractEventHandler, register, BaseAPI
+from usbipice.client.lib import AbstractEventHandler, register, BaseClient
 
 class PulseCountEventHandler(AbstractEventHandler):
     @register("results", "serial", "results")
@@ -8,9 +8,9 @@ class PulseCountEventHandler(AbstractEventHandler):
         from the file parameter used in the request body to the 
         pulse amount."""
 
-class PulseCountAPI(BaseAPI):
-    def reserve(self, amount, subscription_url):
-        return super().reserve(amount, subscription_url, "pulsecount", {})
+class PulseCountBaseClient(BaseClient):
+    def reserve(self, amount):
+        return super().reserve(amount, "pulsecount", {})
 
     def evaluate(self, serial: str, bitstreams: dict[uuid.UUID, str]):
         """Queues bitstreams for evaluations on device serial. Identifiers are used when 
@@ -18,13 +18,15 @@ class PulseCountAPI(BaseAPI):
 
         files = {}
         for iden, path in bitstreams.items():
+            with open(path, "rb") as f:
+                files[iden] = f.read().encode("cp437")
+
             files[iden] = open(path, "rb")
 
-        res = self.requestWorker(serial, "/request", {
+        res = self.requestWorker(serial, {
             "serial": serial,
-            "event": "evaluate"
-        }, files=files)
-
-        # files closed by requests
+            "event": "evaluate",
+            "files": files
+        })
 
         return res

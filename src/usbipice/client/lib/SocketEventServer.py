@@ -39,6 +39,11 @@ class SocketEventServer:
         self.sockets = {}
         self.dont_reconnect = set()
 
+    def addEventHandler(self, eh: AbstractEventHandler):
+        """Adds an event handler. Should not be called after reservations have
+        been made."""
+        self.eventhandlers.append(eh)
+
     def handleEvent(self, event: Event):
         for eh in self.eventhandlers:
             eh.handleEvent(event)

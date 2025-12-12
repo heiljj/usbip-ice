@@ -4,12 +4,12 @@ from usbipice.control import ControlDatabase
 
 class ServerDatabase(ControlDatabase):
     """Provides methods for accessing the database related to the control process."""
-    def reserve(self, amount: int, subscriptionurl: str, clientname: str) -> dict:
+    def reserve(self, amount: int, clientname: str) -> dict:
         """Reserves amount devices for clientname. Returns as {serial, ip, serverport}"""
         try:
             with psycopg.connect(self.url) as conn:
                 with conn.cursor() as cur:
-                    cur.execute("SELECT * FROM makeReservations(%s::int, %s::varchar(255), %s::varchar(255))", (amount, subscriptionurl, clientname))
+                    cur.execute("SELECT * FROM makeReservations(%s::int, %s::varchar(255), %s::varchar(255))", (amount, clientname))
 
                     data = cur.fetchall()
         except Exception:
