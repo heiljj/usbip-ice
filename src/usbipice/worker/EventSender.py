@@ -148,6 +148,7 @@ class EventSender(Database):
         client_id = self.__getReservationClientId(serial)
         if not client_id:
             self.logger.error(f"tried to send event to {serial} but no reservation")
+            return
 
         session = self.startSession(client_id)
         session.send(contents)
