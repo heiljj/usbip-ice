@@ -50,12 +50,6 @@ def main():
     SERVER_PORT = int(os.environ.get("USBIPICE_CONTROL_PORT", "8080"))
     logger.info(f"Running on port {SERVER_PORT}")
 
-    try:
-        with psycopg.connect(DATABASE_URL) as conn:
-            with conn.cursor() as cur:
-                pass
-    except Exception:
-        raise Exception("Failed to connect to database")
 
     database = ServerDatabase(DATABASE_URL, logger)
     notif = DeviceEventSender(DATABASE_URL, logger)

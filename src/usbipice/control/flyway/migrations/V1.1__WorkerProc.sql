@@ -58,7 +58,7 @@ $$;
 CREATE FUNCTION handleWorkerTimeouts(s int)
 RETURNS TABLE (
     "SerialId" varchar(255),
-    "NotificationUrl" varchar(255),
+    "ClientName" varchar(255),
     "WorkerName" varchar(255)
 )
 LANGUAGE plpgsql
@@ -68,7 +68,7 @@ DECLARE t timestamp;
 BEGIN
     t := CURRENT_TIMESTAMP - s * interval '1 second';
     RETURN QUERY
-    SELECT Device.SerialId, Reservations.NotificationUrl, Worker.WorkerName
+    SELECT Device.SerialId, Reservations.ClientName, Worker.WorkerName
     FROM Worker
     INNER JOIN Device ON Worker.WorkerName = Device.Worker
     INNER JOIN Reservations ON Reservations.Device = Device.SerialId

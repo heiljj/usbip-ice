@@ -15,18 +15,18 @@ class ControlEventSender(EventSender):
         if not self.sendClientJson(client_id, serial, {
             "event": "reservation end",
         }):
-            self.logger.warning("failed to send reservation end to {client_id} for device {serial}")
+            self.logger.warning(f"failed to send reservation end to {client_id} for device {serial}")
 
     def sendDeviceFailure(self, serial: str, client_id: str) -> bool:
         """Sends a failure event for serial."""
         if not self.sendClientJson(client_id, serial, {
             "event": "failure",
         }):
-            self.logger.warning("failed to send device failure to {client_id} for device {serial}")
+            self.logger.warning(f"failed to send device failure to {client_id} for device {serial}")
 
     def sendDeviceReservationEndingSoon(self, serial: str) -> bool:
         """Sends a reservation ending soon event for serial."""
         if not self.sendSerialJson(serial, {
             "event": "reservation ending soon",
         }):
-            self.logger.warning("failed to send reservation ending soon to {client_id} for device {serial}")
+            self.logger.warning(f"failed to send reservation ending soon to device {serial}")
