@@ -1,22 +1,32 @@
+from logging import LoggerAdapter
+
 from usbipice.worker import EventSender
 
+class ControlEventSenderLogger(LoggerAdapter):
+    def process(self, msg, kwargs):
+        return f"[ControlEventSender] {msg}", kwargs
+
 class ControlEventSender(EventSender):
-    """Allows for sending event notifications to client's event server, as well as sending 
-    instructions to worker's servers.."""
+    def __init__(self, socketio, dburl, logger):
+        super().__init__(socketio, dburl, ControlEventSenderLogger(logger))
+
     def sendDeviceReservationEnd(self, serial: str, client_id: str) -> bool:
         """Sends a reservation end event for serial."""
-        return self.sendClientJson(client_id, serial, {
+        if not self.sendClientJson(client_id, serial, {
             "event": "reservation end",
-        })
+        }):
+            self.logger.warning("failed to send reservation end to {client_id} for device {serial}")
 
     def sendDeviceFailure(self, serial: str, client_id: str) -> bool:
         """Sends a failure event for serial."""
-        return self.sendClientJson(client_id, serial, {
+        if not self.sendClientJson(client_id, serial, {
             "event": "failure",
-        })
+        }):
+            self.logger.warning("failed to send device failure to {client_id} for device {serial}")
 
     def sendDeviceReservationEndingSoon(self, serial: str) -> bool:
         """Sends a reservation ending soon event for serial."""
-        return self.sendSerialJson(serial, {
+        if not self.sendSerialJson(serial, {
             "event": "reservation ending soon",
-        })
+        }):
+            self.logger.warning("failed to send reservation ending soon to {client_id} for device {serial}")
