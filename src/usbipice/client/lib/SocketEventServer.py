@@ -35,8 +35,11 @@ class SocketEventServer:
         self.logger = EventLogger(logger)
         self.eventhandlers = eventhandlers
 
-        self.socket_lock = threading.Lock()
-        self.sockets: dict[str, socketio.Client] = {}
+        self.worker_lock = threading.Lock()
+        self.worker_sockets: dict[str, socketio.Client] = {}
+
+        self.control_lock = threading.Lock()
+        self.control_socket = None
 
     def addEventHandler(self, eh: AbstractEventHandler):
         """Adds an event handler. Should not be called after reservations have
@@ -47,13 +50,12 @@ class SocketEventServer:
         for eh in self.eventhandlers:
             eh.handleEvent(event)
 
-    def connectWorker(self, url):
-        with self.socket_lock:
-            if url in self.sockets:
+    def __createSocket(self, url):
+        with self.worker_lock:
+            if url in self.worker_sockets:
                 return
 
             sio = socketio.Client()
-            self.sockets[url] = sio
 
             logger = SocketLogger(self.logger, url)
 
@@ -91,6 +93,17 @@ class SocketEventServer:
                 self.handleEvent(event)
 
             sio.connect(url, auth={"client_id": self.client_id}, wait_timeout=10)
+            return sio
+
+    def connectWorker(self, url):
+        if not self.control_socket:
+            raise Exception("Control socket not connected")
+        with self.worker_lock:
+            if url in self.worker_sockets:
+                return
+
+            self.worker_sockets[url] = self.__createSocket(url)
+
 
     def sendWorker(self, url, event, data: dict):
         """Sends data to worker socket. Adds client_id value to data."""
@@ -101,8 +114,8 @@ class SocketEventServer:
             self.logger.error(f"failed to jsonify event {event} for worker {url}")
             return
 
-        with self.socket_lock:
-            sio = self.sockets.get(url)
+        with self.worker_lock:
+            sio = self.worker_sockets.get(url)
 
             if not sio:
                 return False
@@ -111,23 +124,27 @@ class SocketEventServer:
 
             return True
 
+    def connectControl(self, url):
+        with self.control_lock:
+            self.control_socket = self.__createSocket(url)
+
     def disconnectWorker(self, url):
-        with self.socket_lock:
-            sio = self.sockets.get(url)
+        with self.worker_lock:
+            sio = self.worker_sockets.get(url)
 
             if not sio:
                 return True
 
             sio.disconnect()
 
-            del self.sockets[url]
+            del self.worker_sockets[url]
 
     def exit(self):
         for eh in self.eventhandlers:
             eh.exit()
 
-        with self.socket_lock:
-            urls = list(self.sockets)
+        with self.worker_lock:
+            urls = list(self.worker_sockets)
 
         for url in urls:
             self.disconnectWorker(url)
