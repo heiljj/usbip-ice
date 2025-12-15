@@ -9,6 +9,12 @@ class ConnectionInfo:
         self.ip = ip
         self.server_port = server_port
 
+    def __eq__(self, value):
+        return self.ip == value.ip and self.server_port == value.ip
+
+    def url(self):
+        return f"http://{self.ip}:{self.server_port}"
+
 class BaseAPI:
     """Provides an an abstraction over control server http endpoints and tracks reserved devices."""
     def __init__(self, url: str, client_name: str, logger: Logger):
@@ -23,7 +29,7 @@ class BaseAPI:
             self.connection_info[serial] = conn_info
 
     def removeSerial(self, serial: str) -> bool:
-        """Manually removes a device. Should be called after reservations end or 
+        """Manually removes a device. Should be called after reservations end or
         devices fail. Returns whether it was successful."""
         with self.lock:
             if serial in self.connection_info:
@@ -34,11 +40,18 @@ class BaseAPI:
 
     def getSerials(self) -> list[str]:
         """Returns tracked serials."""
-        return list(self.connection_info.keys())
+        with self.lock:
+            return list(self.connection_info.keys())
 
     def getConnectionInfo(self, serial: str) -> ConnectionInfo:
         """Returns connection information associated with a serial."""
-        return self.connection_info.get(serial)
+        with self.lock:
+            return self.connection_info.get(serial)
+
+    def usingConnection(self, info: ConnectionInfo):
+        """Returns whether a connection is currently in use by a device."""
+        with self.lock:
+            return info in self.connection_info.values()
 
     def request(self, url: str, endpoint: str, json: dict, files=None) -> dict:
         """Sends a GET to url/endpoint with json. If files is specified, the data
@@ -58,7 +71,7 @@ class BaseAPI:
             return False
 
     def requestControl(self, endpoint: str, json: dict) -> dict:
-        """Sends a GET request to the specified endpoint of the control server with the specified json. Returns json of the response. 
+        """Sends a GET request to the specified endpoint of the control server with the specified json. Returns json of the response.
         Returns False on error."""
         return self.request(self.url, endpoint, json)
 
@@ -68,8 +81,7 @@ class BaseAPI:
         if not conn_info:
             return False
 
-        url = f"http://{conn_info.ip}:{conn_info.server_port}"
-        return self.request(url, endpoint, json, files=files)
+        return self.request(conn_info.url(), endpoint, json, files=files)
 
     def reserve(self, amount: int, kind: str, args: dict) -> dict:
         """Reserves amount devices with subscription_url as a event server.
@@ -98,7 +110,7 @@ class BaseAPI:
         return out
 
     def extend(self, serials: list[str]) -> list[str]:
-        """Extends the reservation on serials for by hour. The serials must be reserved under the client's name. 
+        """Extends the reservation on serials for by hour. The serials must be reserved under the client's name.
         Returns the serials that were extended."""
         return self.requestControl("extend", {
             "name": self.name,

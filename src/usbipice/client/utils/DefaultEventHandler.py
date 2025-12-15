@@ -3,6 +3,8 @@ from logging import Logger
 from usbipice.client.lib import EventServer, BaseAPI
 from usbipice.client.lib.default import DefaultBaseEventHandler
 
+# TODO make method for all events,
+# this should just do logging
 class DefaultEventHandler(DefaultBaseEventHandler):
     def __init__(self, event_server: EventServer, api: BaseAPI, logger: Logger):
         super().__init__(event_server)
@@ -19,9 +21,7 @@ class DefaultEventHandler(DefaultBaseEventHandler):
     def handleReservationEnd(self, serial: str):
         """Prints a notification and removes the device from the client"""
         self.logger.info(f"reservation for device {serial} ended")
-        self.api.removeSerial(serial)
 
     def handleFailure(self, serial: str):
         """Prints an error and removes the device from the client"""
         self.logger.error(f"device {serial} failed")
-        self.api.removeSerial(serial)
