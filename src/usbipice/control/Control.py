@@ -1,8 +1,13 @@
+from __future__ import annotations
 from logging import Logger
 
 import requests
 
-from usbipice.control import ControlDatabase, ControlEventSender
+from usbipice.control import ControlDatabase
+
+import typing
+if typing.TYPE_CHECKING:
+    from usbipice.control import ControlEventSender
 
 class Control:
     def __init__(self, event_sender: ControlEventSender, database_url: str, logger: Logger):

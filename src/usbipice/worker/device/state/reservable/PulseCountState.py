@@ -1,3 +1,4 @@
+from __future__ import annotations
 import threading
 import uuid
 import re
@@ -7,10 +8,14 @@ import os
 
 import serial
 
-from usbipice.worker.device import Device
 from usbipice.worker.device.state.core import AbstractState, FlashState, BrokenState
 from usbipice.worker.device.state.reservable import reservable
 from usbipice.utils.dev import get_devs
+
+import typing
+if typing.TYPE_CHECKING:
+    from usbipice.worker.device import Device
+
 #from  https://github.com/evolvablehardware/BitstreamEvolutionPico/blob/main/exampleProjectsC/bitstream_over_usb/bitstream_transfer_test.py
 # TODO config file
 BAUD = 115200            # ignored by TinyUSB but needed by pyserial

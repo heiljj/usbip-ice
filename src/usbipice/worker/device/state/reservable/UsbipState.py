@@ -1,14 +1,15 @@
-import os
-
+from __future__ import annotations
 import pyudev
 
 from usbipice.utils.dev import get_busid, get_devs
 from usbipice.utils.usbip import usbip_bind, usbip_unbind
 
-from usbipice.worker.device import Device
-
 from usbipice.worker.device.state.core import AbstractState
 from usbipice.worker.device.state.reservable import reservable
+
+import typing
+if typing.TYPE_CHECKING:
+    from usbipice.worker.device import Device
 
 PORT = "3240"
 
@@ -22,7 +23,7 @@ class UsbipState(AbstractState):
                 - usbip_port
                 - server_ip
             - disconnect, called when the device disconnects from usbip.
-            This notification is delayed, and in the event that a device 
+            This notification is delayed, and in the event that a device
             disconnects and then reconnects, the export event may be received
             before the disconnect one.
         Interface:
@@ -126,7 +127,7 @@ class UsbipEventSender:
         self.serial = device.getSerial()
 
     def export(self, busid: str, ip: str, usbip_port: int):
-        """Event signifies that a bus is now available through usbip 
+        """Event signifies that a bus is now available through usbip
         for the client to connect to."""
         return self.notif.sendDeviceEvent({
             "event": "export",
@@ -137,8 +138,8 @@ class UsbipEventSender:
         })
 
     def disconnect(self):
-        """Event signifies that the worker has detected a usbip disconnection 
+        """Event signifies that the worker has detected a usbip disconnection
         for this serial. This detection is often delayed - it is possible that
-        when a device is disconnected and then reconnected, the client receives 
+        when a device is disconnected and then reconnected, the client receives
         the export event before the disconnect one."""
         return self.notif.sendDeviceEvent({"event": "disconnect"})

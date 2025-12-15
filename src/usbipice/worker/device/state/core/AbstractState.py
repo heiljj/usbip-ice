@@ -2,13 +2,13 @@ from __future__ import annotations
 import threading
 from logging import Logger, LoggerAdapter
 
-from usbipice.worker import WorkerDatabase, Config
-from usbipice.utils import DeviceEventSender, typecheck
+from usbipice.utils import typecheck
 from usbipice.utils.dev import *
+from usbipice.worker.device import Device
 
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
-    from usbipice.worker.device import Device
+    from usbipice.worker import WorkerDatabase, Config, DeviceEventSender
 
 class EventMethod:
     def __init__(self, method, parms):
@@ -39,7 +39,7 @@ class AbstractState:
 
     def __init__(self, device: Device):
         """NOTE: switch CANNOT be called inside __init__(). This will result
-        in the lock for Device being a acquired a second time. If this behavior 
+        in the lock for Device being a acquired a second time. If this behavior
         is needed, use start() instead."""
         self.device = device
 
@@ -85,7 +85,7 @@ class AbstractState:
 
     def switch(self, state_factory):
         """Switches the Device's state to a new one. This happens by first calling
-        exit on the existing state. After the existing state has exited, the 
+        exit on the existing state. After the existing state has exited, the
         state factory is called and the result is set as the state. Subsequent calls
         to switch from the original state object are ignored."""
         with self.switching_lock:
@@ -106,17 +106,17 @@ class AbstractState:
         # TODO
         # update this for sockets
         # test typechecking with sockets
-        """Adds a method to the methods dictionary, which allows it to be called 
-        using the handleEvent function with event=event. These arguments specify which json 
+        """Adds a method to the methods dictionary, which allows it to be called
+        using the handleEvent function with event=event. These arguments specify which json
         key should be used to get the value of that positional argument when handleEvent is called.
         The values passed in from the client are typechecked. Currently, only type and list[type]
         are supported. Files should be sent as cp437 encoded bytes. If the file is needed later, it
         should be saved under self.getDevice().getMediaPath(). Parameters without types are treated as Any.
 
-        Ex. 
-        >>> class ExampleDevice:  
-                @AbstractState.register("add", "value 1", "value 2")  
-                def addNumbers(self, a: int, b: int):  
+        Ex.
+        >>> class ExampleDevice:
+                @AbstractState.register("add", "value 1", "value 2")
+                def addNumbers(self, a: int, b: int):
                     self.getLogger().info(a + b)
         >>> client.requestWorker("serial", {
                 "serial": "ABCDEF",
@@ -141,7 +141,7 @@ class AbstractState:
         return Reg
 
     def handleRequest(self, event, json):
-        """Calls method event from the methods dictionary, using the arguments it was registered with 
+        """Calls method event from the methods dictionary, using the arguments it was registered with
         as keys for the json."""
         methods = AbstractState.methods.get(type(self))
 

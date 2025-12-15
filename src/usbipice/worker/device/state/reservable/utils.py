@@ -4,7 +4,7 @@ STATE_RESERVATION_CONSTRUCTORS = {}
 
 def get_reservation_state_fac(state, kind, args):
     """Creates a factory for switching states based on a reservation request.
-    Returns False if the event does not contain the correct arguments for the 
+    Returns False if the event does not contain the correct arguments for the
     requested state or the state does not exist."""
     fn = STATE_RESERVATION_CONSTRUCTORS.get(kind)
 
@@ -16,7 +16,7 @@ def get_reservation_state_fac(state, kind, args):
 def reservable(name, *args: list[str]):
     """Makes an AbstractState available by reservation request under name. When reserve is called with
     this name, the device switches state to Cls(device: device.Device, *json_args), where json_args
-    are obtained from using args as keys into the request dictionary. The class should be included in 
+    are obtained from using args as keys into the request dictionary. The class should be included in
     __init__.py to ensure the decorator is run.
 
     Ex.

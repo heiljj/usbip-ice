@@ -1,13 +1,14 @@
 from __future__ import annotations
-import typing
 from logging import LoggerAdapter
 
 import psycopg
 
+from usbipice.utils import Database
+
+import typing
 if typing.TYPE_CHECKING:
     from usbipice.worker import Config
-
-from usbipice.utils import DeviceState, Database
+    from usbipice.utils import DeviceState
 
 class WorkerDataBaseLogger(LoggerAdapter):
     def process(self, msg, kwargs):

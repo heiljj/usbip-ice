@@ -3,15 +3,15 @@ from pathlib import Path
 from logging import Logger, LoggerAdapter
 import threading
 
-from usbipice.worker import WorkerDatabase, Config, EventSender
 from usbipice.worker.device import DeviceEventSender
 from usbipice.worker.device.state.core import FlashState, TestState
 from usbipice.worker.device.state.reservable import get_reservation_state_fac
 
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
-    from usbipice.worker.device.state.core import AbstractState
+    from usbipice.worker import WorkerDatabase, Config, EventSender
     from usbipice.worker.device import DeviceManager
+    from usbipice.worker.device.state.core import AbstractState
 
 DEFAULT_FIRMWARE_PATH = "src/usbipice/worker/firmware/build/default_firmware.uf2"
 WORKER_MEDIA = "worker_media"

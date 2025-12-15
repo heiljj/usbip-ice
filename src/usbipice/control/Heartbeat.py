@@ -5,7 +5,11 @@ import time
 import requests
 import schedule
 
-from usbipice.control import HeartbeatDatabase, ControlEventSender
+from usbipice.control import ControlDatabase
+
+import typing
+if typing.TYPE_CHECKING:
+    from usbipice.control import ControlEventSender
 
 # TODO get values from config
 class HeartbeatConfig:
@@ -40,11 +44,12 @@ class HeartbeatLogger(LoggerAdapter):
         return f"[Heartbeat] {msg}", kwargs
 
 # TODO make this nicer, improve logging
+# TODO update to work with new database
 class Heartbeat:
     def __init__(self, event_sender: ControlEventSender, database_url: str, config: HeartbeatConfig, logger: Logger):
         self.event_sender = event_sender
         self.logger = HeartbeatLogger(logger)
-        self.database = HeartbeatDatabase(database_url, self.logger)
+        self.database = ControlDatabase(database_url)
         self.config = config
         self.thread = None
 
@@ -61,6 +66,21 @@ class Heartbeat:
 
         self.thread = threading.Thread(target=run, daemon=True)
         self.thread.start()
+
+    # TODO duplicated from control.Control
+    # not sure where to put this
+    def __notifyEnd(self, client_id: str, worker_url: str, serial: str):
+        self.event_sender.sendDeviceReservationEnd(serial, client_id)
+
+        try:
+            res = requests.get(f"{worker_url}/unreserve", json={
+                "serial": serial
+            }, timeout=10)
+
+            if res.status_code != 200:
+                self.logger.warning(f"[Control] failed to send unreserve command to worker {worker_url} device {serial}")
+        except Exception:
+            pass
 
     def __startHeartBeatWorkers(self):
         def do():

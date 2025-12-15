@@ -8,6 +8,7 @@ import os
 import inspect
 import types
 from configparser import ConfigParser
+from functools import wraps
 
 from pexpect import fdpexpect
 from flask import Response, request, jsonify
@@ -104,6 +105,7 @@ def inject_and_return_json(func):
     for param in parameters:
         parameter_strings.append(str(param))
 
+    @wraps(func)
     def handler_wrapper():
         if request.content_type != "application/json":
             return False
@@ -123,7 +125,7 @@ def inject_and_return_json(func):
         if res is False:
             return Response(status=500)
 
-        return json(res)
+        return jsonify(res)
 
     return handler_wrapper
 

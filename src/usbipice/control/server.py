@@ -5,10 +5,10 @@ import threading
 
 from flask import Flask, request
 from flask_socketio import SocketIO
-from waitress import serve
 
-from usbipice.control import Control, Heartbeat, HeartbeatConfig
-from usbipice.utils import DeviceEventSender, inject_and_return_json
+from usbipice.control import Control
+# from usbipice.control import Control, Heartbeat, HeartbeatConfig
+from usbipice.utils import EventSender, inject_and_return_json
 
 def main():
     logger = logging.getLogger(__name__)
@@ -22,19 +22,19 @@ def main():
     SERVER_PORT = int(os.environ.get("USBIPICE_CONTROL_PORT", "8080"))
     logger.info(f"Running on port {SERVER_PORT}")
 
-
-    event_sender = DeviceEventSender(DATABASE_URL, logger)
-    control = Control(DATABASE_URL, event_sender, logger)
-
-    heartbeat_config = HeartbeatConfig()
-    heartbeat = Heartbeat(event_sender, DATABASE_URL, heartbeat_config, logger)
-    heartbeat.start()
+    # TODO
+    # heartbeat_config = HeartbeatConfig()
+    # heartbeat = Heartbeat(event_sender, DATABASE_URL, heartbeat_config, logger)
+    # heartbeat.start()
 
     app = Flask(__name__)
     socketio = SocketIO(app)
 
     sock_id_to_client_id = {}
     id_lock = threading.Lock()
+
+    event_sender = EventSender(socketio, DATABASE_URL, logger)
+    control = Control(event_sender, DATABASE_URL, logger)
 
     @app.get("/reserve")
     @inject_and_return_json
@@ -94,7 +94,7 @@ def main():
         event_sender.removeSocket(client_id)
 
 
-    serve(app, port=SERVER_PORT)
+    socketio.run(app, port=SERVER_PORT)
 
 if __name__ == "__main__":
     main()
