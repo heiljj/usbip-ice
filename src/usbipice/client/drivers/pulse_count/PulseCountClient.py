@@ -44,7 +44,8 @@ class PulseCountClient(PulseCountBaseClient):
                 raise Exception(f"failed to send serial {serial}")
 
         with self.cv:
-            self.cv.wait_for(lambda : not self.remaining_serials)
+            if self.remaining_serials:
+                self.cv.wait_for(lambda : not self.remaining_serials)
 
         values = {}
 

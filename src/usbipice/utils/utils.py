@@ -103,7 +103,7 @@ def inject_and_return_json(func):
     parameters = inspect.signature(func).parameters.values()
 
     for param in parameters:
-        parameter_strings.append(str(param))
+        parameter_strings.append(param.name)
 
     @wraps(func)
     def handler_wrapper():
@@ -114,7 +114,7 @@ def inject_and_return_json(func):
         except Exception:
             return False
 
-        args = json_to_args(json, parameters)
+        args = json_to_args(json, parameter_strings)
 
         if not typecheck(func, args):
             return Response(status=400)

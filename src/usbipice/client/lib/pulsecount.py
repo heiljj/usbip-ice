@@ -5,7 +5,7 @@ class PulseCountEventHandler(AbstractEventHandler):
     @register("results", "serial", "results")
     def results(self, serial: str, results: dict[str, int]):
         """Called when ALL bitstreams have been evaluated. Results maps
-        from the file parameter used in the request body to the 
+        from the file parameter used in the request body to the
         pulse amount."""
 
 class PulseCountBaseClient(BaseClient):
@@ -13,7 +13,7 @@ class PulseCountBaseClient(BaseClient):
         return super().reserve(amount, "pulsecount", {})
 
     def evaluate(self, serial: str, bitstreams: dict[uuid.UUID, str]):
-        """Queues bitstreams for evaluations on device serial. Identifiers are used when 
+        """Queues bitstreams for evaluations on device serial. Identifiers are used when
         sending back the results - these should be unique and not reused."""
 
         files = {}
@@ -24,7 +24,9 @@ class PulseCountBaseClient(BaseClient):
         res = self.requestWorker(serial, {
             "serial": serial,
             "event": "evaluate",
-            "files": files
+            "contents": {
+                "files": files
+            }
         })
 
         return res

@@ -6,11 +6,12 @@ import atexit
 import pyudev
 
 from usbipice.utils.dev import *
+from usbipice.worker import WorkerDatabase
 from usbipice.worker.device import Device
 
 import typing
 if typing.TYPE_CHECKING:
-    from usbipice.worker import WorkerDatabase, Config, EventSender
+    from usbipice.worker import Config, EventSender
 
 class ManagerLogger(LoggerAdapter):
     def process(self, msg, kwargs):

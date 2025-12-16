@@ -51,49 +51,45 @@ class SocketEventServer:
             eh.handleEvent(event)
 
     def __createSocket(self, url):
-        with self.worker_lock:
-            if url in self.worker_sockets:
+        sio = socketio.Client()
+
+        logger = SocketLogger(self.logger, url)
+
+        @sio.event
+        def connect():
+            logger.info("connected")
+        @sio.event
+        def connect_error(_):
+            logger.error("connection attempt failed")
+        @sio.event
+        def disconnect(reason):
+            logger.error(f"disconnected: {reason}")
+        @sio.event
+        def event(data):
+            try:
+                msg = json.loads(data)
+            except Exception:
+                logger.error("received unparsable data")
                 return
 
-            sio = socketio.Client()
+            serial = msg.get("serial")
+            contents = msg.get("contents")
 
-            logger = SocketLogger(self.logger, url)
+            if contents:
+                event = contents.get("event")
+            else:
+                event = None
 
-            @sio.event
-            def connect():
-                logger.info("connected")
-            @sio.event
-            def connect_error(_):
-                logger.error("connection attempt failed")
-            @sio.event
-            def disconnect(reason):
-                logger.error(f"disconnected: {reason}")
-            @sio.event
-            def event(data):
-                try:
-                    msg = json.loads(data)
-                except Exception:
-                    logger.error("received unparsable data")
-                    return
+            if not serial or not event or not contents:
+                logger.error("bad event contents")
+                return
 
-                serial = msg.get("serial")
-                contents = msg.get("contents")
+            logger.debug(f"received {event} event")
+            event = Event(serial, event, contents)
+            self.handleEvent(event)
 
-                if contents:
-                    event = contents.get("event")
-                else:
-                    event = None
-
-                if not serial or not event or not contents:
-                    logger.error("bad event contents")
-                    return
-
-                logger.debug(f"received {event} event")
-                event = Event(serial, event, contents)
-                self.handleEvent(event)
-
-            sio.connect(url, auth={"client_id": self.client_id}, wait_timeout=10)
-            return sio
+        sio.connect(url, auth={"client_id": self.client_id}, wait_timeout=10)
+        return sio
 
     def connectWorker(self, url):
         if not self.control_socket:

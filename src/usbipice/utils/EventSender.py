@@ -159,7 +159,7 @@ class EventSender(Database):
         return self.sendClient(client_id, contents)
 
     def __packageContents(self, serial: str, contents: dict):
-        contents[serial] = serial
+        contents["serial"] = serial
         contents = {
             "serial": serial,
             "contents": contents
