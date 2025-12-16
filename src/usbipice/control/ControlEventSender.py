@@ -12,14 +12,14 @@ class ControlEventSender(EventSender):
 
     def sendDeviceReservationEnd(self, serial: str, client_id: str) -> bool:
         """Sends a reservation end event for serial."""
-        if not self.sendClientJson(client_id, serial, {
+        if not self.sendClientJson(serial, client_id, {
             "event": "reservation end",
         }):
             self.logger.warning(f"failed to send reservation end to {client_id} for device {serial}")
 
     def sendDeviceFailure(self, serial: str, client_id: str) -> bool:
         """Sends a failure event for serial."""
-        if not self.sendClientJson(client_id, serial, {
+        if not self.sendClientJson(serial, client_id, {
             "event": "failure",
         }):
             self.logger.warning(f"failed to send device failure to {client_id} for device {serial}")

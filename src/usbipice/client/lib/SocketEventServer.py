@@ -88,8 +88,12 @@ class SocketEventServer:
             event = Event(serial, event, contents)
             self.handleEvent(event)
 
-        sio.connect(url, auth={"client_id": self.client_id}, wait_timeout=10)
-        return sio
+        # TODO
+        try:
+            sio.connect(url, auth={"client_id": self.client_id}, wait_timeout=10)
+            return sio
+        except Exception:
+            return False
 
     def connectWorker(self, url):
         if not self.control_socket:

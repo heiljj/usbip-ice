@@ -1,3 +1,4 @@
+from __future__ import annotations
 from logging import Logger, LoggerAdapter
 import threading
 import time
@@ -43,8 +44,6 @@ class HeartbeatLogger(LoggerAdapter):
     def process(self, msg, kwargs):
         return f"[Heartbeat] {msg}", kwargs
 
-# TODO make this nicer, improve logging
-# TODO update to work with new database
 class Heartbeat:
     def __init__(self, event_sender: ControlEventSender, database_url: str, config: HeartbeatConfig, logger: Logger):
         self.event_sender = event_sender
@@ -90,7 +89,11 @@ class Heartbeat:
                 if not workers:
                     return
 
-                for name, ip, port in workers:
+                for row in workers:
+                    name = row["name"]
+                    ip = row["ip"]
+                    port = row["port"]
+
                     url = f"http://{ip}:{port}/heartbeat"
                     try:
                         req = requests.get(url, timeout=10)
@@ -100,7 +103,10 @@ class Heartbeat:
                     except Exception:
                         self.logger.error(f"{name} failed heartbeat check")
                     else:
-                        self.database.heartbeatWorker(name)
+                        if not self.database.heartbeatWorker(name):
+                            self.logger.error(f"failed to update heartbeat for {name}")
+                        else:
+                            self.logger.debug(f"heartbeat success for {name}")
 
             threading.Thread(target=run, name="heartbeat-worker", daemon=True).start()
 
@@ -108,12 +114,14 @@ class Heartbeat:
 
     def __startWorkerTimeouts(self):
         def do():
-            def run(heartbeat_poll=self.config.getHeartbeatPoll()):
-                data = self.database.getWorkerTimeouts(heartbeat_poll)
-                if data:
-                    for serial, client_name, worker in data:
-                        self.event_sender.sendDeviceFailure(serial, client_name)
-                        self.logger.info(f"Worker {worker} failed; sent device failure for {serial}")
+            def run(timeout_dur=self.config.getTimeoutDuration()):
+                data = self.database.getWorkerTimeouts(timeout_dur)
+                if not data:
+                    return
+
+                for row in data:
+                    self.event_sender.sendDeviceFailure(row["serial"], row["client_id"])
+                    self.logger.info(f"Worker {row["worker"]} failed; sent device failure for client {row["client_id"]} device {row["serial"]}")
 
             threading.Thread(target=run, name="heartbeat-worker-timeouts", daemon=True).start()
 
@@ -122,11 +130,12 @@ class Heartbeat:
     def __startReservationTimeouts(self):
         def do():
             def run():
-                if (data := self.database.getReservationTimeouts()):
-                    for serial, client_id in data:
-                        self.event_sender.sendDeviceReservationEnd(serial, client_id)
-                        self.database.sendWorkerUnreserve(serial)
-                        self.logger.info(f"Reservation for device {serial} by client {client_id} ended")
+                if not (data := self.database.getReservationTimeouts()):
+                    return
+
+                for row in data:
+                    self.__notifyEnd(row["serial"], row["workerip"], row["workerport"])
+                    self.logger.info(f"Reservation for device {row["serial"]} by client {row["client_id"]} ended")
 
             threading.Thread(target=run, name="heartbeat-reservation-timeouts", daemon=True).start()
 
@@ -135,10 +144,12 @@ class Heartbeat:
     def __startReservationEndingSoon(self):
         def do():
             def run(notify_at=self.config.getReservationNotifyAt()):
-                if (data := self.database.getReservationEndingSoon(notify_at)):
-                    for serial in data:
-                        self.event_sender.sendDeviceReservationEndingSoon(serial)
-                        self.logger.info(f"Sent ending soon notification for {serial}")
+                if not (data := self.database.getReservationEndingSoon(notify_at)):
+                    return
+
+                for serial in data:
+                    self.event_sender.sendDeviceReservationEndingSoon(serial)
+                    self.logger.info(f"Sent ending soon notification for {serial}")
 
             threading.Thread(target=run, name="heartbeat-reservation-ending-soon", daemon=True).start()
 

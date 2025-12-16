@@ -4,7 +4,7 @@ class ControlDatabase(Database):
 
     def getDeviceWorkerUrl(self, serial: str) -> str:
         """Obtains the worker server url of the worker the device is located on."""
-        if not (data := self.__execute("SELECT * FROM getDeviceWorker(%s::varchar(255))", (serial,))):
+        if not (data := self.execute("SELECT * FROM getDeviceWorker(%s::varchar(255))", (serial,))):
             return False
 
         row = data[0]
@@ -21,11 +21,11 @@ class ControlDatabase(Database):
 
     def extend(self, name: str, serials: list[str]) -> list[str]:
         """Extends the reservation time of the serials under the name of the client. Returns the extended serials"""
-        return self.__execute("SELECT * FROM extendReservations(%s::varchar(255), %s::varchar(255)[])", (name, serials))
+        return self.execute("SELECT * FROM extendReservations(%s::varchar(255), %s::varchar(255)[])", (name, serials))
 
     def extendAll(self, name: str) -> list[str]:
         """Extends the reservation time of all serials under the name of the client. Returns the extended serials."""
-        return self.__execute("SELECT * FROM extendAllReservations(%s::varchar(255))", (name,))
+        return self.execute("SELECT * FROM extendAllReservations(%s::varchar(255))", (name,))
 
     def end(self, name: str, serials: list[str]):
         """Ends the reservation of serials under the name of the client.
@@ -44,7 +44,7 @@ class ControlDatabase(Database):
         )
 
     def getWorkers(self) -> dict:
-        """Gets information about all of the workers, returns as a list of (name, ip, port)"""
+        """Gets information about all of the workers, returns as a list of {name, ip, port}"""
         return self.getData(
             "SELECT * FROM WorkerHeartbeats", tuple(),
             ["name", "ip", "port"], stringify=["ip", "port"]
@@ -52,7 +52,7 @@ class ControlDatabase(Database):
 
     def heartbeatWorker(self, name: str):
         """Updates the last heartbeat time on a worker to the current time"""
-        return self.__execute("CALL heartbeatWOrker(%s::varchar(255))", (name,))
+        return self.proc("CALL heartbeatWorker(%s::varchar(255))", (name,))
 
     def getWorkerTimeouts(self, timeout_dur: int) -> list:
         """Times out the workers that have not had a heartbeat in timeout_dur. Returns the
@@ -64,11 +64,12 @@ class ControlDatabase(Database):
 
     def getReservationEndingSoon(self, minutes: int) -> list[str]:
         """Gets reservations that are ending soon, returns the serials."""
-        return self.__execute("SELECT * FROM getReservationsEndingSoon(%s::int)", (minutes,))
+        data = self.execute("SELECT * FROM getReservationsEndingSoon(%s::int)", (minutes,))
+        return list(map(lambda x : x[0], data))
 
     def getReservationTimeouts(self) -> list[str]:
         """Gets reservations that have timed out, returns (serial, client_id)"""
         return self.getData(
             "SELECT * FROM handleReservationTimeouts()", tuple(),
-            ["serial", "client_id"]
+            ["serial", "client_id", "workerip", "workerport"], stringify=["workerip", "workerport"]
         )

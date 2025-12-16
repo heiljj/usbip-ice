@@ -15,16 +15,6 @@ class Control:
         self.database = ControlDatabase(database_url)
         self.logger = logger
 
-    def log(self, logs, client_name, ip):
-        for row in logs:
-            if len(row) != 2:
-                continue
-
-            level, msg = row[0], row[1]
-            self.logger.log(level, f"[{client_name}@{ip}] {msg}")
-
-        return True
-
     def extend(self, client_id: str, serials: list[str]) -> list[str]:
         return self.database.extend(client_id, serials)
 
@@ -32,7 +22,7 @@ class Control:
         return self.database.extendAll(client_id)
 
     def __notifyEnd(self, client_id: str, serial: str, worker_url: str):
-        self.event_sender.sendClientJson(serial, client_id, {"event": "reservation end"})
+        self.event_sender.sendDeviceReservationEnd(serial, client_id)
 
         try:
             res = requests.get(f"{worker_url}/unreserve", json={

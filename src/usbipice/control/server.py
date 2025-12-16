@@ -6,14 +6,19 @@ import threading
 from flask import Flask, request
 from flask_socketio import SocketIO
 
-from usbipice.control import Control
-# from usbipice.control import Control, Heartbeat, HeartbeatConfig
-from usbipice.utils import EventSender, inject_and_return_json
+from usbipice.control import Control, Heartbeat, HeartbeatConfig, ControlEventSender
+from usbipice.utils import inject_and_return_json
+
+class ControlLogger(logging.LoggerAdapter):
+    def process(self, msg, kwargs):
+        return f"[Control] {msg}", kwargs
 
 def main():
-    logger = logging.getLogger(__name__)
-    logger.setLevel(logging.DEBUG)
-    logger.addHandler(logging.StreamHandler(sys.stdout))
+    base_logger = logging.getLogger(__name__)
+    base_logger.setLevel(logging.DEBUG)
+    base_logger.addHandler(logging.StreamHandler(sys.stdout))
+
+    logger = ControlLogger(base_logger)
 
     DATABASE_URL = os.environ.get("USBIPICE_DATABASE")
     if not DATABASE_URL:
@@ -22,10 +27,6 @@ def main():
     SERVER_PORT = int(os.environ.get("USBIPICE_CONTROL_PORT", "8080"))
     logger.info(f"Running on port {SERVER_PORT}")
 
-    # TODO
-    # heartbeat_config = HeartbeatConfig()
-    # heartbeat = Heartbeat(event_sender, DATABASE_URL, heartbeat_config, logger)
-    # heartbeat.start()
 
     app = Flask(__name__)
     socketio = SocketIO(app)
@@ -33,8 +34,12 @@ def main():
     sock_id_to_client_id = {}
     id_lock = threading.Lock()
 
-    event_sender = EventSender(socketio, DATABASE_URL, logger)
+    event_sender = ControlEventSender(socketio, DATABASE_URL, logger)
     control = Control(event_sender, DATABASE_URL, logger)
+
+    heartbeat_config = HeartbeatConfig()
+    heartbeat = Heartbeat(event_sender, DATABASE_URL, heartbeat_config, logger)
+    heartbeat.start()
 
     @app.get("/reserve")
     @inject_and_return_json
@@ -64,7 +69,14 @@ def main():
     @app.get("/log")
     @inject_and_return_json
     def log(name: str, logs: list):
-        return control.log(logs, name, request.remote_addr[0])
+        for row in logs:
+            if len(row) != 2:
+                continue
+
+            level, msg = row[0], row[1]
+            base_logger.log(level, f"[{name}@{request.remote_addr[0]}] {msg}")
+
+        return True
 
     @socketio.on("connect")
     def connection(auth):

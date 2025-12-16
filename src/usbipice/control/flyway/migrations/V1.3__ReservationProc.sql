@@ -73,7 +73,7 @@ RETURNS TABLE (
     "WorkerServerPort" int
 )
 LANGUAGE plpgsql
-AS 
+AS
 $$
 BEGIN
     CREATE TEMPORARY TABLE res (
@@ -111,7 +111,7 @@ RETURNS TABLE (
     "WorkerServerPort" int
 )
 LANGUAGE plpgsql
-AS 
+AS
 $$
 BEGIN
     CREATE TEMPORARY TABLE res (
@@ -157,10 +157,13 @@ BEGIN
     FROM Reservations
     WHERE Until < CURRENT_TIMESTAMP;
 
-    RETURN QUERY 
-    SELECT res."Device", Reservations.ClientName
+    RETURN QUERY
+    SELECT res."Device", Reservations.ClientName, Worker.Host, Worker.ServerPort
     FROM res
-    INNER JOIN Reservations ON res."Device" = Reservations.Device;
+    INNER JOIN Reservations ON res."Device" = Reservations.Device
+    INNER JOIN Device on Device.SerialId = res."Device"
+    INNER JOIN Worker on Device.Worker = Worker.WorkerName;
+
 
     DELETE FROM Reservations
     WHERE Device IN (SELECT res."Device" FROM res);
@@ -182,7 +185,7 @@ BEGIN
     RETURN QUERY
     SELECT Reservations.Device
     FROM Reservations
-    WHERE Reservations.Until < CURRENT_TIMESTAMP + interval '1 minute' * mins;
+    WHERE Reservations.Until < CURRENT_TIMESTAMP + interval '1 second' * mins;
 END
 $$;
 

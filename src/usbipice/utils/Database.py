@@ -22,7 +22,7 @@ class Database:
         except Exception:
             raise Exception("Failed to connect to database")
 
-    def __execute(self, sql: str, args: tuple):
+    def execute(self, sql: str, args: tuple):
         try:
             with psycopg.connect(self.url) as conn:
                 with conn.cursor() as cur:
@@ -31,8 +31,18 @@ class Database:
         except Exception:
             return False
 
+    def proc(self, sql: str, args: tuple):
+        try:
+            with psycopg.connect(self.url) as conn:
+                with conn.cursor() as cur:
+                    cur.execute(sql, args)
+        except Exception:
+            return False
+
+        return True
+
     def getData(self, sql: str, args: tuple, columns: list[str], stringify=[]):
-        if (data := self.__execute(sql, args)) is False:
+        if (data := self.execute(sql, args)) is False:
             return False
 
         out = list(map(lambda row : dict(zip(columns, row)), data))
