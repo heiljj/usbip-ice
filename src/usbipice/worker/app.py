@@ -7,11 +7,15 @@ import json
 
 from flask import Flask, request, Response
 from flask_socketio import SocketIO
+from socketio import Server, WSGIApp
 
 from usbipice.worker.device import DeviceManager
 from usbipice.worker import Config, EventSender
 
 from usbipice.utils import RemoteLogger, inject_and_return_json
+
+# whether being run with uvicorn
+DEBUGING = __name__ == "__main__"
 
 def main():
     logger = logging.getLogger(__name__)
@@ -25,7 +29,11 @@ def main():
     config = Config(path=config_path)
 
     app = Flask(__name__)
-    socketio = SocketIO(app)
+
+    if DEBUGING:
+        socketio = SocketIO(app)
+    else:
+        socketio = Server()
 
     logger = RemoteLogger(logger, config.getControl(), config.getName())
 
@@ -98,8 +106,11 @@ def main():
 
         manager.handleRequest(serial, event, contents)
 
-    # TODO
-    socketio.run(app, port=8081, debug=False, allow_unsafe_werkzeug=True)
+    if DEBUGING:
+        logger.warning("DEBUG MODE")
+        socketio.run(app, port=config.getPort(), allow_unsafe_werkzeug=True)
+    else:
+        return WSGIApp(socketio, app)
 
 if __name__ == "__main__":
     main()

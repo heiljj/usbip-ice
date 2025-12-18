@@ -11,7 +11,8 @@ dependencies = [
     "pyudev",
     "requests",
     "schedule",
-    "pyserial"
+    "pyserial",
+    "python-dotenv"
 ]
 
 [build-system]

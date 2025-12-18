@@ -5,9 +5,12 @@ import threading
 
 from flask import Flask, request
 from flask_socketio import SocketIO
+from socketio import Server, WSGIApp
 
 from usbipice.control import Control, Heartbeat, HeartbeatConfig, ControlEventSender
 from usbipice.utils import inject_and_return_json
+
+DEBUGGING = __name__ == "__main__"
 
 class ControlLogger(logging.LoggerAdapter):
     def process(self, msg, kwargs):
@@ -29,7 +32,11 @@ def main():
 
 
     app = Flask(__name__)
-    socketio = SocketIO(app)
+
+    if DEBUGGING:
+        socketio = SocketIO(app)
+    else:
+        socketio = Server()
 
     sock_id_to_client_id = {}
     id_lock = threading.Lock()
@@ -105,9 +112,11 @@ def main():
 
         event_sender.removeSocket(client_id)
 
-
-    #TODO
-    socketio.run(app, port=SERVER_PORT, allow_unsafe_werkzeug=True)
+    if DEBUGGING:
+        logger.warning("DEBUG MODE")
+        socketio.run(app, port=SERVER_PORT)
+    else:
+        return WSGIApp(socketio, app)
 
 if __name__ == "__main__":
     main()
