@@ -7,7 +7,8 @@ import json
 
 from flask import Flask, request, Response
 from flask_socketio import SocketIO
-from socketio import Server, WSGIApp
+from socketio import Server, ASGIApp
+from asgiref.wsgi import WsgiToAsgi
 
 from usbipice.worker.device import DeviceManager
 from usbipice.worker import Config, EventSender
@@ -100,7 +101,7 @@ def run_debug():
     app = Flask(__name__)
     socketio = SocketIO(app)
     create_app(app, socketio, config, logger)
-    socketio.run(app, port=config.getPort())
+    socketio.run(app, port=config.getPort(), allow_unsafe_werkzeug=True)
 
 def run_uvicorn():
     # TODO
@@ -117,8 +118,9 @@ def run_uvicorn():
     app = Flask(__name__)
     socketio = Server()
     create_app(app, socketio, config, logger)
+    app = WsgiToAsgi(app)
 
-    return WSGIApp(socketio, app)
+    return ASGIApp(socketio, app)
 
 if __name__ == "__main__":
     run_debug()

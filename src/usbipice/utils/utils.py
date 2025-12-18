@@ -98,7 +98,7 @@ def json_to_args(json, parameters):
 
 def inject_and_return_json(func):
     """Injects request json values into arguments. Uses argument names as the json key. Typechecks arguments,
-    only type, list[type] and dict are supported. Returns a status=400 if a key is missing or the typecheck fails.
+    only classes are supported. Returns a status=400 if a key is missing or the typecheck fails.
     Returns status=200 on True and status=500 on false. Otherwise, returns flask.jsonify of the result."""
     parameter_strings = [] # func args as string
     parameters = inspect.signature(func).parameters.values()
@@ -109,11 +109,11 @@ def inject_and_return_json(func):
     @wraps(func)
     def handler_wrapper():
         if request.content_type != "application/json":
-            return False
+            return Response(status=400)
         try:
             json = request.get_json()
         except Exception:
-            return False
+            return Response(status=400)
 
         args = json_to_args(json, parameter_strings)
 
@@ -121,7 +121,7 @@ def inject_and_return_json(func):
             return Response(status=400)
 
         res = func(*args)
-        if res is True:
+        if res is True or res is None:
             return Response(status=200)
         if res is False:
             return Response(status=500)
@@ -148,3 +148,40 @@ def config_else_env(option: str, section: str, parser: ConfigParser, error=True,
             raise Exception(f"Configuration error. Set {section}.{option} in the configuration or specify {option} as an environment variable.")
 
     return value
+
+def generate_circuit(hz, build_dir, build_script="src/usbipice/utils/build.sh", pcf_path="src/usbipice/utils/pico_ice.pcf", clk=48000000):
+    if not os.path.isdir(build_dir):
+        os.mkdir(build_dir)
+
+    incr = int((clk/hz) - 1)
+    veri = f"""
+    module top (
+        input CLK,
+        output ICE_27,
+        output LED_R,
+        output LED_B
+    );
+    reg [22:0] counter;
+    reg out;
+    always @(posedge CLK) begin
+        counter <= counter + 1;
+
+        if (counter >= {incr}) begin
+            out <= 1'b1;
+            counter <= 23'b00000000000000000000000;
+        end else begin
+            out <= 1'b0;
+        end
+    end
+
+    assign ICE_27 = out;
+    assign LED_R = counter[22];
+    endmodule
+    """
+
+    with open(os.path.join(build_dir, "top.v"), "w") as f:
+        f.write(veri)
+
+    subprocess.run(["bash", build_script, build_dir, pcf_path], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True)
+
+    return os.path.join(build_dir, "top.bin")

@@ -1,6 +1,7 @@
 from __future__ import annotations
 import threading
 import uuid
+from typing import Dict, List
 
 from usbipice.client.lib.pulsecount import PulseCountBaseClient, PulseCountEventHandler
 from usbipice.client.lib import register
@@ -29,7 +30,7 @@ class PulseCountClient(PulseCountBaseClient):
             if not self.remaining_serials:
                 self.cv.notify_all()
 
-    def evaluate(self, bitstream_paths: list[str]) -> dict[dict[str, int]]:
+    def evaluate(self, bitstream_paths: List[str]) -> Dict[Dict[str, int]]:
         "Evaluates a list of bitstream paths on each device. Returns as {serial -> {path -> pulses}}."
         self.uuid_map = {}
         self.results = {}
@@ -62,5 +63,5 @@ class ResultHandler(PulseCountEventHandler):
         self.client = client
 
     @register("results", "serial", "results")
-    def results(self, serial: str, results: dict[str, int]):
+    def results(self, serial: str, results: Dict[str, int]):
         self.client._addResult(serial, results)

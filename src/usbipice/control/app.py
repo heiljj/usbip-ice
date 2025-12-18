@@ -5,7 +5,8 @@ import threading
 
 from flask import Flask, request
 from flask_socketio import SocketIO
-from socketio import Server, WSGIApp
+from socketio import Server, ASGIApp
+from asgiref.wsgi import WsgiToAsgi
 
 from usbipice.control import Control, Heartbeat, HeartbeatConfig, ControlEventSender
 from usbipice.utils import inject_and_return_json
@@ -67,7 +68,7 @@ def create_app(app, socketio, logger):
                 continue
 
             level, msg = row[0], row[1]
-            base_logger.log(level, f"[{name}@{request.remote_addr[0]}] {msg}")
+            logger.log(level, f"[{name}@{request.remote_addr[0]}] {msg}")
 
         return True
 
@@ -109,7 +110,7 @@ def run_debug():
     app = Flask(__name__)
     socketio = SocketIO(app)
     create_app(app, socketio, logger)
-    socketio.run(app, port=SERVER_PORT)
+    socketio.run(app, port=SERVER_PORT, allow_unsafe_werkzeug=True)
 
 def run_uvicorn():
     # TODO
@@ -119,9 +120,10 @@ def run_uvicorn():
 
     app = Flask(__name__)
     socketio = Server()
-    create_app(app, socketio)
+    create_app(app, socketio, logger)
+    app = WsgiToAsgi(app)
 
-    return WSGIApp(socketio, app, logger)
+    return ASGIApp(socketio, app)
 
 if __name__ == "__main__":
     run_debug()

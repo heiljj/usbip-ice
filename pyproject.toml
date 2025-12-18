@@ -12,7 +12,8 @@ dependencies = [
     "requests",
     "schedule",
     "pyserial",
-    "python-dotenv"
+    "python-dotenv",
+    "asgiref"
 ]
 
 [build-system]

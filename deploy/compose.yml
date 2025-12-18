@@ -40,7 +40,7 @@ services:
     - USBIPICE_DEFAULT=src/usbipice/worker/firmware/default/build/default_firmware.uf2
     - USBIPICE_PULSE_COUNT=src/usbipice/worker/firmware/pulse_count/build/bitstream_over_usb.uf2
 
-    command: [".venv/bin/uvicorn", "usbipice.worker.app:main", "--env-file", ".uvicorn_env_bridge", "--port", "8081", "--factory", "host=0.0.0.0"]
+    command: [".venv/bin/uvicorn", "usbipice.worker.app:run_uvicorn", "--env-file", ".uvicorn_env_bridge", "--port", "8081", "--factory"]
 
   control:
     deploy:
@@ -61,4 +61,4 @@ services:
     environment:
       - USBIPICE_DATABASE=${USBIPICE_DATABASE}
 
-    command: [".venv/bin/uvicorn", "usbipice.control.app:main", "--env-file", ".uvicorn_env_bridge", "--factory", "host=0.0.0.0"]
+    command: [".venv/bin/uvicorn", "usbipice.control.app:run_uvicorn", "--env-file", ".uvicorn_env_bridge", "--factory"]
