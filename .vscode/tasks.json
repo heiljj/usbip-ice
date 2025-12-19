@@ -62,6 +62,27 @@
                     "${workspaceFolder}/deploy/compose.yml"
                 ]
             }
+        },
+        {
+            "label": "compose-restart",
+            "detail": "Restarts compose and clears database",
+            "dependsOn": [
+                "compose-down",
+                "database-clear",
+                "compose-up"
+            ],
+            "dependsOrder": "sequence",
+            "problemMatcher": []
+        },
+        {
+            "label": "compose-rebuild",
+            "detail": "Rebuilds image, clears database, restarts compose",
+            "dependsOn": [
+                "docker-build-all",
+                "compose-restart"
+            ],
+            "dependsOrder": "sequence",
+            "problemMatcher": []
         }
     ]
 }
