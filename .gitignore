@@ -11,6 +11,7 @@ src/usbipice/worker/firmware/pico-ice-sdk
 src/usbipice/worker/firmware/pico-sdk
 
 examples/pulse_count_usbip/build
+examples/pulse_count_driver/build
 
 usbipice.egg-info
 dist

@@ -5,11 +5,11 @@ import threading
 
 from flask import Flask, request
 from flask_socketio import SocketIO
-from socketio import Server, ASGIApp
+from socketio import ASGIApp
 from asgiref.wsgi import WsgiToAsgi
 
 from usbipice.control import Control, Heartbeat, HeartbeatConfig, ControlEventSender
-from usbipice.utils import inject_and_return_json
+from usbipice.utils import inject_and_return_json, flask_socketio_adapter_connect, flask_socketio_adapter_on, SyncAsyncServer
 
 class ControlLogger(logging.LoggerAdapter):
     def __init__(self, logger, extra=None):
@@ -18,8 +18,8 @@ class ControlLogger(logging.LoggerAdapter):
     def process(self, msg, kwargs):
         return f"[Control] {msg}", kwargs
 
-def create_app(app, socketio, logger):
-    logger = ControlLogger(logger)
+def create_app(app, socketio, base_logger):
+    logger = ControlLogger(base_logger)
 
     DATABASE_URL = os.environ.get("USBIPICE_DATABASE")
     if not DATABASE_URL:
@@ -68,12 +68,13 @@ def create_app(app, socketio, logger):
                 continue
 
             level, msg = row[0], row[1]
-            logger.log(level, f"[{name}@{request.remote_addr[0]}] {msg}")
+            base_logger.log(level, f"[{name}@{request.remote_addr[0]}] {msg}")
 
         return True
 
     @socketio.on("connect")
-    def connection(auth):
+    @flask_socketio_adapter_connect
+    def connection(sid, environ, auth):
         client_id = auth.get("client_id")
         if not client_id:
             logger.warning("socket connection without client id")
@@ -82,14 +83,15 @@ def create_app(app, socketio, logger):
         logger.info(f"client {client_id} connected")
 
         with id_lock:
-            sock_id_to_client_id[request.sid] = client_id
+            sock_id_to_client_id[sid] = client_id
 
-        event_sender.addSocket(request.sid, client_id)
+        event_sender.addSocket(sid, client_id)
 
     @socketio.on("disconnect")
-    def disconnect(reason):
+    @flask_socketio_adapter_on
+    def disconnect(sid, reason):
         with id_lock:
-            client_id = sock_id_to_client_id.pop(request.sid, None)
+            client_id = sock_id_to_client_id.pop(sid, None)
 
         if not client_id:
             logger.warning("disconnected socket had no known client id")
@@ -108,22 +110,23 @@ def run_debug():
     logger.warning("Running in debug mode")
 
     app = Flask(__name__)
+
     socketio = SocketIO(app)
     create_app(app, socketio, logger)
-    socketio.run(app, port=SERVER_PORT, allow_unsafe_werkzeug=True)
+    socketio.run(app, port=SERVER_PORT, allow_unsafe_werkzeug=True, host="0.0.0.0")
 
 def run_uvicorn():
-    # TODO
     logger = logging.getLogger(__name__)
     logger.setLevel(logging.DEBUG)
     logger.addHandler(logging.StreamHandler(sys.stdout))
 
     app = Flask(__name__)
-    socketio = Server()
+    socketio = SyncAsyncServer(async_mode="asgi")
     create_app(app, socketio, logger)
     app = WsgiToAsgi(app)
 
     return ASGIApp(socketio, app)
+
 
 if __name__ == "__main__":
     run_debug()

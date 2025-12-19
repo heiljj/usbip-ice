@@ -5,15 +5,18 @@ import sys
 import threading
 import json
 
-from flask import Flask, request, Response
+from flask import Flask, Response
 from flask_socketio import SocketIO
-from socketio import Server, ASGIApp
+from socketio import AsyncServer, ASGIApp
 from asgiref.wsgi import WsgiToAsgi
 
 from usbipice.worker.device import DeviceManager
 from usbipice.worker import Config, EventSender
 
-from usbipice.utils import RemoteLogger, inject_and_return_json
+from usbipice.utils import RemoteLogger, inject_and_return_json, flask_socketio_adapter_connect, flask_socketio_adapter_on, SyncAsyncServer
+
+# 100 bitstreams
+MAX_REQUEST_SIZE = 104.2 * 8000 * 100
 
 def create_app(app, socketio, config, logger):
     logger = RemoteLogger(logger, config.getControl(), config.getName())
@@ -39,21 +42,23 @@ def create_app(app, socketio, config, logger):
         return manager.unreserve(serial)
 
     @socketio.on("connect")
-    def connection(auth):
+    @flask_socketio_adapter_connect
+    def connection(sid, environ, auth):
         client_id = auth.get("client_id")
         if not client_id:
             logger.warning("socket connection without client id")
             return
 
         with id_lock:
-            sock_id_to_client_id[request.sid] = client_id
+            sock_id_to_client_id[sid] = client_id
 
-        event_sender.addSocket(request.sid, client_id)
+        event_sender.addSocket(sid, client_id)
 
     @socketio.on("disconnect")
-    def disconnect(reason):
+    @flask_socketio_adapter_on
+    def disconnect(sid, reason):
         with id_lock:
-            client_id = sock_id_to_client_id.pop(request.sid, None)
+            client_id = sock_id_to_client_id.pop(sid, None)
 
         if not client_id:
             logger.warning("disconnected socket had no known client id")
@@ -63,9 +68,10 @@ def create_app(app, socketio, config, logger):
 
 
     @socketio.on("request")
-    def handle(data):
+    @flask_socketio_adapter_on
+    def handle(sid, data):
         with id_lock:
-            client_id = sock_id_to_client_id.get(request.sid)
+            client_id = sock_id_to_client_id.get(sid)
 
         if not client_id:
             logger.warning("socket sent request but has no known client id")
@@ -99,9 +105,9 @@ def run_debug():
     config = Config(path=config_path)
 
     app = Flask(__name__)
-    socketio = SocketIO(app)
+    socketio = SocketIO(app, max_http_buffer_size=MAX_REQUEST_SIZE)
     create_app(app, socketio, config, logger)
-    socketio.run(app, port=config.getPort(), allow_unsafe_werkzeug=True)
+    socketio.run(app, port=config.getPort(), allow_unsafe_werkzeug=True, host="0.0.0.0")
 
 def run_uvicorn():
     # TODO
@@ -116,7 +122,7 @@ def run_uvicorn():
     config = Config(path=config_path)
 
     app = Flask(__name__)
-    socketio = Server()
+    socketio = SyncAsyncServer(async_mode="asgi", max_http_buffer_size=MAX_REQUEST_SIZE)
     create_app(app, socketio, config, logger)
     app = WsgiToAsgi(app)
 

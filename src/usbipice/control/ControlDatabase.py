@@ -66,6 +66,9 @@ class ControlDatabase(Database):
     def getReservationEndingSoon(self, minutes: int) -> list[str]:
         """Gets reservations that are ending soon, returns the serials."""
         data = self.execute("SELECT * FROM getReservationsEndingSoon(%s::int)", (minutes,))
+        if not data:
+            return False
+
         return list(map(lambda x : x[0], data))
 
     def getReservationTimeouts(self) -> list[str]:
