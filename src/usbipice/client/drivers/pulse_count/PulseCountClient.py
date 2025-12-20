@@ -5,16 +5,19 @@ from typing import Dict, List
 
 from usbipice.client.lib.pulsecount import PulseCountBaseClient, PulseCountEventHandler
 from usbipice.client.lib import register
-from usbipice.client.utils import DefaultEventHandler
+from usbipice.client.lib.utils import LoggerEventHandler, ReservationExtender
 
 class PulseCountClient(PulseCountBaseClient):
     # TODO threadsafe evals
     """NOTE: this implementation is intended only for single threaded use.
         Evaluates bitstreams for pulse counts. Evaluation is done on each device."""
-    def __init__(self, url, client_name, logger):
+    def __init__(self, url, client_name, logger, log_events=False):
         super().__init__(url, client_name, logger)
 
-        self.addEventHandler(DefaultEventHandler(self.server, self, logger))
+        if log_events:
+            self.addEventHandler(LoggerEventHandler(self.server, logger))
+
+        self.addEventHandler(ReservationExtender(self.server, self, logger))
         self.addEventHandler(ResultHandler(self.server, self))
 
         self.cv = threading.Condition()

@@ -11,6 +11,8 @@ from usbipice.client.drivers.pulse_count import PulseCountClient
 from usbipice.utils import generate_circuit
 
 #################################################
+# Whether to log all data received from workers/control
+EVENT_LOGGING = True
 # Paths to bin circuits to evaluate.
 # NOTE: Pulses are evaluated for 5 seconds, so results will differ from kHz
 BITSTREAM_PATHS = ["examples/pulse_count_driver/precompiled_circuits/circuit_generated_2Khz.bin",
@@ -28,7 +30,7 @@ BUILD_DIR = "examples/pulse_count_driver/build"
 # If you have more than one device, feel free to increase this number. This
 # particular client evaluates each circuit once on each of the devices,
 # but the distribution method can be changed by modifying the client.
-NUM_DEVICES = 1
+NUM_DEVICES = 3
 
 # ID for the client. Must be unique.
 CLIENT_NAME = "read default example"
@@ -48,7 +50,7 @@ logger.setLevel(logging.DEBUG)
 logger.addHandler(logging.StreamHandler(sys.stdout))
 
 # Creates a client to interface with system
-client = PulseCountClient(CONTROL_SERVER, CLIENT_NAME, logger)
+client = PulseCountClient(CONTROL_SERVER, CLIENT_NAME, logger, log_events=EVENT_LOGGING)
 
 # This gracefully stops the client. It ends all devices that are reserved under
 # its name. If the client does not gracefully exit, devices will still be reserved
