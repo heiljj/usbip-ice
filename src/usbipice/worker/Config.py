@@ -17,53 +17,26 @@ class Config:
         else:
             parser = None
 
-        self.name = config_else_env("USBIPICE_WORKER_NAME", "Connection", parser, error=False)
-        if not self.name:
-            self.name = os.environ.get("HOSTNAME")
-            print(f"WARNING: using {self.name}")
+        self.worker_name: str= config_else_env("USBIPICE_WORKER_NAME", "Connection", parser, error=False)
+        if not self.worker_name:
+            self.worker_name = os.environ.get("HOSTNAME")
+            print(f"WARNING: using {self.worker_name}")
 
-        if not self.name:
+        if not self.worker_name:
             raise Exception("USBIPICE_WORKER_NAME not set, no HOSTNAME")
 
+        self.server_port: str = config_else_env("USBIPICE_SERVER_PORT", "Connection", parser, default="8081")
+        self.virtual_server_port: str = config_else_env("USBIPICE_VIRTUAL_PORT", "Connection", parser, default="8081")
+        self.control_server_url: str = config_else_env("USBIPICE_CONTROL_SERVER", "Connection", parser)
+        self.virtual_ip: str = config_else_env("USBIPICE_VIRTUAL_IP", "Connection", parser, error=False)
+        if not self.virtual_ip:
+            self.virtual_ip = get_ip()
+            print(f"WARNING: using {self.virtual_ip}")
 
-
-        self.port = config_else_env("USBIPICE_SERVER_PORT", "Connection", parser, default="8081")
-        self.virtual_port = config_else_env("USBIPICE_VIRTUAL_PORT", "Connection", parser, default="8081")
-        self.control = config_else_env("USBIPICE_CONTROL_SERVER", "Connection", parser)
-
-        self.ip = config_else_env("USBIPICE_VIRTUAL_IP", "Connection", parser, error=False)
-        if not self.ip:
-            self.ip = get_ip()
-            print(f"WARNING: using {self.ip}")
-
-        self.database = os.environ.get("USBIPICE_DATABASE")
-        if not self.database:
+        self.libpg_string= os.environ.get("USBIPICE_DATABASE")
+        if not self.libpg_string:
             raise Exception("Environment variable USBIPICE_DATABASE not configured. Set this to a libpg \
             connection string to the database. If using sudo .venv/bin/worker, you may have to use the ENV= sudo arguments.")
 
         self.default_firmware_path = config_else_env("USBIPICE_DEFAULT", "Firmware", parser)
         self.pulse_firmware_path = config_else_env("USBIPICE_PULSE_COUNT", "Firmware", parser)
-
-    def getName(self):
-        return self.name
-
-    def getPort(self):
-        return self.port
-
-    def getVirtualIp(self):
-        return self.ip
-
-    def getVirtualPort(self):
-        return self.virtual_port
-
-    def getDatabase(self):
-        return self.database
-
-    def getDefaultFirmwarePath(self):
-        return self.default_firmware_path
-
-    def getPulseCountFirmwarePath(self):
-        return self.pulse_firmware_path
-
-    def getControl(self):
-        return self.control

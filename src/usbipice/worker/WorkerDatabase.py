@@ -21,14 +21,14 @@ class WorkerDataBaseLogger(LoggerAdapter):
 class WorkerDatabase(Database):
     """Provides access to database operations related to the worker process."""
     def __init__(self, config: Config, logger):
-        super().__init__(config.getDatabase())
-        self.worker_name = config.getName()
+        super().__init__(config.libpg_string)
+        self.worker_name = config.worker_name
         self.logger = WorkerDataBaseLogger(logger)
 
         try:
             with psycopg.connect(self.url) as conn:
                 with conn.cursor() as cur:
-                    cur.execute("CALL addWorker(%s::varchar(255), %s::inet, %s::int)", (self.worker_name, config.getVirtualIp(), config.getVirtualPort()))
+                    cur.execute("CALL addWorker(%s::varchar(255), %s::inet, %s::int)", (self.worker_name, config.virtual_ip, config.virtual_server_port))
                     conn.commit()
 
         except Exception:

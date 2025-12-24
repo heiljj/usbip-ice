@@ -24,28 +24,24 @@ class DeviceManager:
     """Tracks device events and routes them to their corresponding Device object. Also listens to kernel
     device events to identify usbip disconnects."""
     def __init__(self, event_sender: EventSender, config: Config, logger: Logger):
-        self.config = config
-        self.logger = ManagerLogger(logger)
-        self.event_sender = event_sender
-        self.database = WorkerDatabase(config, self.logger)
+        self.config: Config = config
+        self.logger: Logger = ManagerLogger(logger)
+        self.event_sender: EventSender = event_sender
+        self.database: WorkerDatabase = WorkerDatabase(config, self.logger)
 
-        atexit.register(lambda : self.onExit())
+        atexit.register(self.onExit)
 
-        self.devs: dict[str, Device] = {}
-        self.dev_lock = threading.Lock()
+        self._devs: dict[str, Device] = {}
+        self._dev_lock = threading.Lock()
 
-        self.kernel_lock = threading.Lock()
-        self.kernel_add_subscribers: dict[str, Device] = {}
-        self.kernel_remove_subscribers: dict[str, Device] = {}
-
-        self.exiting = False
+        self.exiting: bool = False
 
         context = pyudev.Context()
         monitor = pyudev.Monitor.from_netlink(context)
         monitor.filter_by("tty")
         monitor.filter_by("block")
 
-        observer = pyudev.MonitorObserver(monitor, lambda x, y : self.handleDevEvent(x, y), name="manager-userevents")
+        observer = pyudev.MonitorObserver(monitor, self.handleDevEvent, name="manager-userevents")
         observer.start()
 
         self.scan()
@@ -76,21 +72,20 @@ class DeviceManager:
         if not serial:
             return
 
-        with self.dev_lock:
-            device = self.devs.get(serial)
+        with self._dev_lock:
+            device = self._devs.get(serial)
 
             if not device:
                 self.database.addDevice(serial)
                 device = Device(serial, self, self.event_sender, self.database, self.logger)
-                self.devs[serial] = device
+                self._devs[serial] = device
 
         thread = threading.Thread(target=lambda : device.handleDeviceEvent(action, dev), name="dev-event-handler")
         thread.start()
 
     def handleRequest(self, serial: str, event: str, contents: dict):
-        with self.dev_lock:
-            dev = self.devs.get(serial)
-
+        with self._dev_lock:
+            dev = self._devs.get(serial)
 
         if not dev:
             self.logger.warning(f"request for {event} on {serial} but device not found")
@@ -99,8 +94,8 @@ class DeviceManager:
         return dev.handleRequest(event, contents)
 
     def reserve(self, serial: str, kind: str, args: dict):
-        with self.dev_lock:
-            device = self.devs.get(serial)
+        with self._dev_lock:
+            device = self._devs.get(serial)
 
         if not device:
             self.logger.error(f"device {serial} reserved but does not exist")
@@ -109,8 +104,8 @@ class DeviceManager:
         return device.handleReserve(kind, args)
 
     def unreserve(self, serial: str):
-        with self.dev_lock:
-            dev = self.devs.get(serial)
+        with self._dev_lock:
+            dev = self._devs.get(serial)
 
         if not dev:
             return False
@@ -119,13 +114,10 @@ class DeviceManager:
 
     def onExit(self):
         """Callback for cleanup on program exit"""
-        with self.dev_lock:
-            devs = list(self.devs.values())
+        with self._dev_lock:
+            devs = list(self._devs.values())
 
         for dev in devs:
             dev.handleExit()
 
         self.database.onExit()
-
-    def getConfig(self) -> Config:
-        return self.config

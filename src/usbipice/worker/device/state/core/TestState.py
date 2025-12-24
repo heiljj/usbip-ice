@@ -9,16 +9,16 @@ class TestState(AbstractState):
         self.lock = threading.Lock()
         self.exiting = False
 
-        self.getDatabase().updateDeviceStatus(self.getSerial(), "testing")
+        self.database.updateDeviceStatus(self.serial, "testing")
 
-        self.timer = threading.Timer(30, lambda : self.switch(lambda : BrokenState(self.getDevice())))
+        self.timer = threading.Timer(30, lambda : self.switch(lambda : BrokenState(self.device)))
         self.timer.start()
 
     def handleAdd(self, dev):
         path = dev.get("DEVNAME")
 
         if not path:
-            self.getLogger().warning("add event with no devname")
+            self.logger.warning("add event with no devname")
             return
 
         with self.lock:
@@ -29,4 +29,4 @@ class TestState(AbstractState):
 
             if check_default(path):
                 self.timer.cancel()
-                self.switch(lambda : ReadyState(self.getDevice()))
+                self.switch(lambda : ReadyState(self.device))

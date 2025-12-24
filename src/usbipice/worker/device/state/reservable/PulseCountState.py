@@ -31,8 +31,8 @@ class Bitstream:
 @reservable("pulsecount")
 class PulseCountStateFlasher(AbstractState):
     def start(self):
-        pulse_fac = lambda : PulseCountState(self.getDevice())
-        self.switch(lambda : FlashState(self.getDevice(), self.getConfig().getPulseCountFirmwarePath(), pulse_fac))
+        pulse_fac = lambda : PulseCountState(self.device)
+        self.switch(lambda : FlashState(self.device, self.config.pulse_firmware_path, pulse_fac))
 class PulseCountState(AbstractState):
     def __init__(self, state):
         super().__init__(state)
@@ -44,31 +44,31 @@ class PulseCountState(AbstractState):
 
         # ensure new ports show correctly
         time.sleep(2)
-        paths = get_devs().get(self.getSerial())
+        paths = get_devs().get(self.serial)
 
         if not paths:
-            self.switch(lambda : BrokenState(self.getDevice()))
+            self.switch(lambda : BrokenState(self.device))
 
         port = list(filter(lambda x : x.get("ID_USB_INTERFACE_NUM") == "00", paths))
 
         if not port:
-            self.switch(lambda : BrokenState(self.getDevice()))
+            self.switch(lambda : BrokenState(self.device))
 
         port = port[0].get("DEVNAME")
 
         self.ser = serial.Serial(port, BAUD, timeout=0.1)
         self.reader = Reader(self.ser)
-        self.sender = PulseCountEventSender(self.getDevice())
+        self.sender = PulseCountEventSender(self.device_event_sender)
 
         self.exiting = False
         self.thread = threading.Thread(target=self.run)
         self.thread.start()
 
-        self.getEventSender().sendDeviceInitialized()
+        self.device_event_sender.sendDeviceInitialized()
 
     @AbstractState.register("evaluate", "files")
     def queue(self, files):
-        media_path = self.getDevice().getMediaPath()
+        media_path = self.device.media_path
         paths = [str(media_path.joinpath(str(uuid.uuid4()))) for _ in range(len(files))]
 
         for path, data in zip(paths, files.values()):
@@ -76,7 +76,7 @@ class PulseCountState(AbstractState):
                 f.write(data.encode("cp437"))
                 f.flush()
 
-        self.getLogger().debug(f"queued bitstreams: {list(files.keys())}")
+        self.logger.debug(f"queued bitstreams: {list(files.keys())}")
 
         with self.cv:
             for path, name in zip(paths, files.keys()):
@@ -99,7 +99,7 @@ class PulseCountState(AbstractState):
 
                 bitstream = self.bitstream_queue.pop()
 
-            self.getLogger().debug(f"evaluating bitstream {bitstream.name}")
+            self.logger.debug(f"evaluating bitstream {bitstream.name}")
 
             with open(bitstream.location, "rb") as f:
                 data = f.read()
@@ -108,7 +108,7 @@ class PulseCountState(AbstractState):
 
             self.reader.waitUntilReady()
 
-            self.getLogger().debug(f"uploading bitstream {bitstream.name}")
+            self.logger.debug(f"uploading bitstream {bitstream.name}")
 
             for i in range(0, data_len, CHUNK_SIZE):
                 chunk = data[i:i+CHUNK_SIZE]
@@ -116,11 +116,11 @@ class PulseCountState(AbstractState):
                 self.ser.flush()
                 time.sleep(INTER_CHUNK_DELAY)
 
-            self.getLogger().debug("waiting for pulse")
+            self.logger.debug("waiting for pulse")
 
             result = self.reader.waitUntilPulse()
 
-            self.getLogger().debug(f"got pulse: {result}")
+            self.logger.debug(f"got pulse: {result}")
 
             if result is False:
                 with self.cv:
@@ -133,7 +133,7 @@ class PulseCountState(AbstractState):
             with self.cv:
                 if not self.bitstream_queue:
                     if not self.sender.finished(self.results):
-                        self.getLogger().error("failed to send results")
+                        self.logger.error("failed to send results")
 
                     self.results = {}
 
@@ -153,7 +153,7 @@ class Reader:
         self.last_pulse = None
         self.exiting = False
 
-        self.thread = threading.Thread(target=lambda : self.read(), daemon=True)
+        self.thread = threading.Thread(target=self.read, daemon=True)
         self.thread.start()
 
     def read(self):
@@ -200,12 +200,11 @@ class Reader:
         self.thread.join()
 
 class PulseCountEventSender:
-    def __init__(self, device: Device):
-        self.notif = device.getEventSender()
-        self.serial = device.getSerial()
+    def __init__(self, event_sender):
+        self.event_sender = event_sender
 
     def finished(self, pulses):
-        return self.notif.sendDeviceEvent({
+        return self.event_sender.sendDeviceEvent({
             "event": "results",
             "results": pulses
         })

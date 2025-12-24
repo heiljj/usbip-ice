@@ -104,7 +104,6 @@ class EventServer:
 
             self.worker_sockets[url] = self.__createSocket(url)
 
-
     def sendWorker(self, url, event, data: dict):
         """Sends data to worker socket."""
         try:

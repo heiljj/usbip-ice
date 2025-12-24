@@ -14,20 +14,20 @@ class FlashState(AbstractState):
         if timeout:
             def do_timeout():
                 self.logger.error("flashing timed out")
-                self.switch(lambda : BrokenState(self.getDevice()))
+                self.switch(lambda : BrokenState(self.device))
 
             self.timer = threading.Timer(timeout, do_timeout)
             self.timer.daemon = True
-            self.timer.name = f"{self.getSerial()}-flash-timeout"
+            self.timer.name = f"{self.serial}-flash-timeout"
             self.timer.start()
 
     def start(self):
-        devs = get_devs().get(self.getSerial())
+        devs = get_devs().get(self.serial)
         if not devs:
             return
 
         for file in devs:
-            if self.isSwitching():
+            if self.switching:
                 return
 
             self.handleAdd(file)
@@ -36,24 +36,24 @@ class FlashState(AbstractState):
         devname = dev.get("DEVNAME")
 
         if not devname:
-            self.getLogger().warning("add event with no devname")
+            self.logger.warning("add event with no devname")
             return
 
         if dev.get("SUBSYSTEM") == "tty":
-            self.getLogger().debug(f"sending bootloader signal to {devname}")
+            self.logger.debug(f"sending bootloader signal to {devname}")
             send_bootloader(devname)
             return
 
         if dev.get("DEVTYPE") == "partition":
-            self.getLogger().debug(f"found bootloader candidate {devname}")
+            self.logger.debug(f"found bootloader candidate {devname}")
 
-            uploaded = upload_firmware_path(devname, self.getDevice().getMountPath(), self.firmware_path)
+            uploaded = upload_firmware_path(devname, self.device.mount_path, self.firmware_path)
 
             if not uploaded:
-                self.getLogger().error(f"failed to upload firmware to {devname}")
+                self.logger.error(f"failed to upload firmware to {devname}")
                 if self.timer:
                     self.timer.cancel()
-                self.switch(lambda : BrokenState(self.getDevice()))
+                self.switch(lambda : BrokenState(self.device))
                 return
 
             if self.timer:

@@ -7,21 +7,22 @@ import json
 
 from flask import Flask, Response
 from flask_socketio import SocketIO
-from socketio import AsyncServer, ASGIApp
+from socketio import ASGIApp
 from asgiref.wsgi import WsgiToAsgi
 
+from usbipice.utils.web import SyncAsyncServer, flask_socketio_adapter_connect, flask_socketio_adapter_on, inject_and_return_json
 from usbipice.worker.device import DeviceManager
 from usbipice.worker import Config, EventSender
 
-from usbipice.utils import RemoteLogger, inject_and_return_json, flask_socketio_adapter_connect, flask_socketio_adapter_on, SyncAsyncServer
+from usbipice.utils import RemoteLogger
 
 # 100 bitstreams
 MAX_REQUEST_SIZE = 104.2 * 8000 * 100
 
-def create_app(app, socketio, config, logger):
-    logger = RemoteLogger(logger, config.getControl(), config.getName())
+def create_app(app: Flask, socketio: SocketIO | SyncAsyncServer, config: Config, logger: logging.Logger):
+    logger = RemoteLogger(logger, config.control_server_url, config.worker_name)
 
-    event_sender = EventSender(socketio, config.getDatabase(), logger)
+    event_sender = EventSender(socketio, config.libpg_string, logger)
     manager = DeviceManager(event_sender, config, logger)
 
     sock_id_to_client_id = {}
@@ -65,7 +66,6 @@ def create_app(app, socketio, config, logger):
             return
 
         event_sender.removeSocket(client_id)
-
 
     @socketio.on("request")
     @flask_socketio_adapter_on
@@ -113,7 +113,7 @@ def run_debug():
     app = Flask(__name__)
     socketio = SocketIO(app, max_http_buffer_size=MAX_REQUEST_SIZE)
     create_app(app, socketio, config, logger)
-    socketio.run(app, port=config.getPort(), allow_unsafe_werkzeug=True, host="0.0.0.0")
+    socketio.run(app, port=config.server_port, allow_unsafe_werkzeug=True, host="0.0.0.0")
 
 def run_uvicorn():
     # TODO

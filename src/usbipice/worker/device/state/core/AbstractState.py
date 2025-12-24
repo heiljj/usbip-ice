@@ -41,15 +41,15 @@ class AbstractState:
         """NOTE: switch CANNOT be called inside __init__(). This will result
         in the lock for Device being a acquired a second time. If this behavior
         is needed, use start() instead."""
-        self.device = device
+        self.device: Device = device
 
         name = type(self).__name__
-        self.logger = StateLogger(self.getDevice().getLogger(), name)
+        self.logger: Logger = StateLogger(self.device.logger, name)
 
-        self.switching = False
-        self.switching_lock = threading.RLock()
+        self._switching: bool = False
+        self.switching_lock: threading.RLock = threading.RLock()
 
-        self.getLogger().debug(f"state is now {name}")
+        self.logger.info(f"state is now {name}")
 
     def start(self):
         """Called after the AbstractState is initialized, for
@@ -62,26 +62,23 @@ class AbstractState:
     def handleRemove(self, dev: dict):
         """Called on REMOVE device event."""
 
+    def handleRequest(self, event, json):
+        """Calls method event from the methods dictionary, using the arguments it was registered with
+        as keys for the json."""
+        methods = AbstractState.methods.get(type(self))
+
+        if not methods:
+            return
+
+        method = methods.get(event)
+
+        if method:
+            return method(self, json)
+
+        return
+
     def handleExit(self):
         """Cleanup"""
-
-    def getDevice(self) -> Device:
-        return self.device
-
-    def getSerial(self) -> str:
-        return self.getDevice().getSerial()
-
-    def getLogger(self) -> Logger:
-        return self.logger
-
-    def getDatabase(self) -> WorkerDatabase:
-        return self.getDevice().getDatabase()
-
-    def getEventSender(self) -> DeviceEventSender:
-        return self.getDevice().getEventSender()
-
-    def getConfig(self) -> Config:
-        return self.getDevice().getConfig()
 
     def switch(self, state_factory):
         """Switches the Device's state to a new one. This happens by first calling
@@ -89,20 +86,12 @@ class AbstractState:
         state factory is called and the result is set as the state. Subsequent calls
         to switch from the original state object are ignored."""
         with self.switching_lock:
-            if self.switching:
+            if self._switching:
                 return
 
-            self.switching = True
+            self._switching = True
 
-        return self.getDevice().switch(state_factory)
-
-    def getSwitchLock(self):
-        return self.switching_lock
-
-    def isSwitching(self):
-        """Whether the Device is currently switching states"""
-        with self.switching_lock:
-            return self.switching
+        return self.device.switch(state_factory)
 
     @classmethod
     def register(cls, event, *args):
@@ -143,17 +132,24 @@ class AbstractState:
 
         return Reg
 
-    def handleRequest(self, event, json):
-        """Calls method event from the methods dictionary, using the arguments it was registered with
-        as keys for the json."""
-        methods = AbstractState.methods.get(type(self))
+    @property
+    def serial(self) -> str:
+        return self.device.serial
 
-        if not methods:
-            return
+    @property
+    def database(self) -> WorkerDatabase:
+        return self.device.database
 
-        method = methods.get(event)
+    @property
+    def device_event_sender(self) -> DeviceEventSender:
+        return self.device.device_event_sender
 
-        if method:
-            return method(self, json)
+    @property
+    def config(self) -> Config:
+        return self.device.config
 
-        return
+    @property
+    def switching(self):
+        """Whether the Device is currently switching states"""
+        with self.switching_lock:
+            return self._switching

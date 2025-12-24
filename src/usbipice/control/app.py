@@ -9,7 +9,8 @@ from socketio import ASGIApp
 from asgiref.wsgi import WsgiToAsgi
 
 from usbipice.control import Control, Heartbeat, HeartbeatConfig, ControlEventSender
-from usbipice.utils import inject_and_return_json, flask_socketio_adapter_connect, flask_socketio_adapter_on, SyncAsyncServer
+from usbipice.utils.web import SyncAsyncServer
+from usbipice.utils.web import flask_socketio_adapter_connect, flask_socketio_adapter_on, inject_and_return_json
 
 class ControlLogger(logging.LoggerAdapter):
     def __init__(self, logger, extra=None):
@@ -18,7 +19,7 @@ class ControlLogger(logging.LoggerAdapter):
     def process(self, msg, kwargs):
         return f"[Control] {msg}", kwargs
 
-def create_app(app, socketio, base_logger):
+def create_app(app: Flask, socketio: SocketIO | SyncAsyncServer, base_logger: logging.Logger):
     logger = ControlLogger(base_logger)
 
     DATABASE_URL = os.environ.get("USBIPICE_DATABASE")

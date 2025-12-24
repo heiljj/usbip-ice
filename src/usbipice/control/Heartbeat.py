@@ -15,30 +15,12 @@ if typing.TYPE_CHECKING:
 # TODO get values from config
 class HeartbeatConfig:
     def __init__(self):
-        self.heartbeat_poll_seconds = 15
-        self.timeout_poll_seconds = 15
-        self.timeout_duration_seconds = 60
-        self.reservation_poll_seconds = 30
-        self.reservation_expiring_poll_seconds = 300
-        self.reservation_expiring_notify_at_seconds = 20 * 60
-
-    def getHeartbeatPoll(self):
-        return self.heartbeat_poll_seconds
-
-    def getTimeoutPoll(self):
-        return self.timeout_poll_seconds
-
-    def getTimeoutDuration(self):
-        return self.timeout_duration_seconds
-
-    def getReservationPoll(self):
-        return self.reservation_poll_seconds
-
-    def getReservationExpiringPoll(self):
-        return self.reservation_expiring_poll_seconds
-
-    def getReservationNotifyAt(self):
-        return self.reservation_expiring_notify_at_seconds
+       self.heartbeat_poll_seconds: str = 15
+       self.timeout_poll_seconds: str = 15
+       self.timeout_duration_seconds: str = 60
+       self.reservation_poll_seconds: str = 30
+       self.reservation_expiring_poll_seconds: str = 300
+       self.reservation_expiring_notify_at_seconds: str = 20 * 60
 
 class HeartbeatLogger(LoggerAdapter):
     def __init__(self, logger, extra=None):
@@ -113,11 +95,11 @@ class Heartbeat:
 
             threading.Thread(target=run, name="heartbeat-worker", daemon=True).start()
 
-        schedule.every(self.config.getHeartbeatPoll()).seconds.do(do)
+        schedule.every(self.config.heartbeat_poll_seconds).seconds.do(do)
 
     def __startWorkerTimeouts(self):
         def do():
-            def run(timeout_dur=self.config.getTimeoutDuration()):
+            def run(timeout_dur=self.config.timeout_duration_seconds):
                 data = self.database.getWorkerTimeouts(timeout_dur)
                 if not data:
                     return
@@ -128,7 +110,7 @@ class Heartbeat:
 
             threading.Thread(target=run, name="heartbeat-worker-timeouts", daemon=True).start()
 
-        schedule.every(self.config.getTimeoutPoll()).seconds.do(do)
+        schedule.every(self.config.timeout_poll_seconds).seconds.do(do)
 
     def __startReservationTimeouts(self):
         def do():
@@ -142,11 +124,11 @@ class Heartbeat:
 
             threading.Thread(target=run, name="heartbeat-reservation-timeouts", daemon=True).start()
 
-        schedule.every(self.config.getReservationPoll()).seconds.do(do)
+        schedule.every(self.config.reservation_poll_seconds).seconds.do(do)
 
     def __startReservationEndingSoon(self):
         def do():
-            def run(notify_at=self.config.getReservationNotifyAt()):
+            def run(notify_at=self.config.reservation_expiring_notify_at_seconds):
                 if not (data := self.database.getReservationEndingSoon(notify_at)):
                     return
 
@@ -156,4 +138,4 @@ class Heartbeat:
 
             threading.Thread(target=run, name="heartbeat-reservation-ending-soon", daemon=True).start()
 
-        schedule.every(self.config.getReservationPoll()).seconds.do(do)
+        schedule.every(self.config.reservation_poll_seconds).seconds.do(do)

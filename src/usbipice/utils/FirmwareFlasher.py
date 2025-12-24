@@ -12,7 +12,7 @@ class Device:
         self.firmware_path = firmware_path
         self.flasher = flasher
 
-        self.lock= threading.Lock()
+        self.lock = threading.Lock()
         self.upload_finished = False
 
     def ttyExport(self, path):
@@ -63,7 +63,7 @@ class FirmwareFlasher:
 
         context = pyudev.Context()
         monitor = pyudev.Monitor.from_netlink(context)
-        self.observer = pyudev.MonitorObserver(monitor, lambda x, y: self.__handle_event(x, y), name="flash-observer")
+        self.observer = pyudev.MonitorObserver(monitor, self.__handle_event, name="flash-observer")
 
     def startFlasher(self):
         """Start monitoring for device events."""

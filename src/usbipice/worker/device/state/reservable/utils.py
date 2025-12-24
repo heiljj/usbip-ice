@@ -26,7 +26,7 @@ def reservable(name, *args: List[str]):
         class ExampleState(device.state.core.AbstractState):
                 def __init__(self, state, msg):
                     super().__init__()
-                    self.getLogger().info(msg)
+                    self.logger.info(msg)
     >>> requests.get("{host}/reserve", json={
             "serial": "ASDF39TFDFG",
             "message": "hello!"
