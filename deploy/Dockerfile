@@ -33,4 +33,7 @@ WORKDIR /usr/local/app
 RUN python3 -m venv .venv
 RUN .venv/bin/pip install -e .
 
+RUN apt-get remove -y make cmake gcc-arm-none-eabi
+RUN rm -rf /usr/local/lib
+
 EXPOSE 8080
