@@ -29,8 +29,8 @@ jobs:
           tags: usbipiceproject/usbipice-worker:amd
           file: deploy/Dockerfile
           platforms: linux/amd64
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=registry, ref=usbipiceproject/usbipice-worker:amd
+          cache-to: type=inline, mode=max
 
       -
         name: Build and push arm
@@ -40,7 +40,7 @@ jobs:
           tags: usbipiceproject/usbipice-worker:arm
           file: deploy/Dockerfile
           platforms: linux/arm64
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=registry, ref=usbipiceproject/usbipice-worker:arm
+          cache-to: type=inline, mode=max
 
 
